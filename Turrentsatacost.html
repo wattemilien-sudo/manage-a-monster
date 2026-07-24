@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Biomechanical Logistics: Ammunition & Energy Balance</title>
+    <style>
+        body {
+            background-color: #0d0e15;
+            color: #e0e6ed;
+            font-family: monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 20px;
+        }
+        canvas {
+            background-color: #1a1c29;
+            border: 2px solid #333;
+            cursor: crosshair;
+            box-shadow: 0 0 20px rgba(255, 204, 0, 0.1);
+        }
+        .controls {
+            margin-top: 15px;
+            display: flex;
+            gap: 15px;
+            background: #232635;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #444;
+            align-items: center;
+        }
+        button {
+            background: #333;
+            color: white;
+            border: 1px solid #555;
+            padding: 10px 15px;
+            cursor: pointer;
+            border-radius: 4px;
+            font-family: inherit;
+            transition: 0.2s;
+        }
+        button:hover { background: #444; }
+        .instructions {
+            color: #ffcc00;
+            max-width: 650px;
+            text-align: center;
+            margin-bottom: 10px;
+            line-height: 1.4;
+        }
+    </style>
+</head>
+<body>
+
+    <h2>Grid Module: Turret Ammunition & Resource Balancing</h2>
+    <div class="instructions">
+        <strong>ENERGY BALANCE:</strong> Turrets cost <strong>3 ATP per shot</strong>.<br>
+        If your ATP reserves run dry, your antibody turrets will stall and stop firing, leaving the giant vulnerable to parasites!
+    </div>
+
+    <div class="controls">
+        <button onclick="placeTurret()" style="background: #ffcc00; color: #000; font-weight: bold;">Place Antibody Turret (Cost: 20 ATP)</button>
+        <div>ATP Reserves: <strong id="atp-display" style="color:#ffcc00; font-size: 1.3em;">50</strong></div>
+        <button onclick="spawnParasiteManual()" style="background: #115533;">Spawn Parasite Wave</button>
+    </div>
+
+    <br>
+    <canvas id="gameCanvas" width="600" height="400"></canvas>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        const TILE_SIZE = 40;
+        const COLS = canvas.width / TILE_SIZE;
+        const ROWS = canvas.height / TILE_SIZE;
+
+        // Grid Initialization
+        let grid = Array.from({ length: ROWS }, () => Array(COLS).fill({ type: 'empty' }));
+
+        // Vein Highway across the middle (Row 5)
+        const veinRow = 5;
+        for (let c = 1; c < COLS - 1; c++) {
+            grid[veinRow][c] = { type: 'vein' };
+        }
+
+        // Game State
+        let atp = 50;
+        let parasites = [];
+        let projectiles = [];
+        let turrets = [];
+
+        // Passive ATP generation (simulating heart/metabolism)
+        setInterval(() => {
+            atp += 2;
+            document.getElementById('atp-display').innerText = atp;
+        }, 1000);
+
+        // Natural infection wave
+        setInterval(() => {
+            spawnParasite();
+        }, 4000);
+
+        function spawnParasite() {
+            parasites.push({
+                x: 1 * TILE_SIZE + TILE_SIZE/2,
+                y: veinRow * TILE_SIZE + TILE_SIZE/2,
+                hp: 3,
+                maxHp: 3,
+                speed: 1.5
+            });
+        }
+
+        function spawnParasiteManual() {
+            spawnParasite();
+        }
+
+        function placeTurret() {
+            if (atp >= 20) {
+                atp -= 20;
+                document.getElementById('atp-display').innerText = atp;
+
+                // Find a valid empty slot near the vein to place the turret
+                for (let r = 3; r <= 7; r++) {
+                    for (let c = 3; c < COLS - 3; c++) {
+                        if (grid[r][c].type === 'empty' && r !== veinRow) {
+                            grid[r][c] = { type: 'turret' };
+                            turrets.push({ r: r, c: c, range: 110, cooldown: 0, ammoCost: 3 });
+                            return;
+                        }
+                    }
+                }
+            }
+        }
+
+        // --- GAME LOOP (60 FPS) ---
+        function update() {
+            // 1. Update Parasites
+            for (let i = parasites.length - 1; i >= 0; i--) {
+                let p = parasites[i];
+                p.x += p.speed;
+
+                // Reached the end of the line
+                if (p.x > (COLS - 1) * TILE_SIZE) {
+                    parasites.splice(i, 1);
+                    atp = Math.max(0, atp - 15); // Penalty
+                    document.getElementById('atp-display').innerText = atp;
+                    continue;
+                }
+
+                if (p.hp <= 0) {
+                    parasites.splice(i, 1);
+                    atp += 5; // Reward
+                    document.getElementById('atp-display').innerText = atp;
+                }
+            }
+
+            // 2. Update Turrets with Ammunition Check
+            for (let turret of turrets) {
+                if (turret.cooldown > 0) turret.cooldown--;
+
+                if (turret.cooldown === 0) {
+                    let turretX = turret.c * TILE_SIZE + TILE_SIZE/2;
+                    let turretY = turret.r * TILE_SIZE + TILE_SIZE/2;
+
+                    // Find closest parasite in range
+                    let target = null;
+                    let minDist = turret.range;
+
+                    for (let p of parasites) {
+                        let dist = Math.hypot(p.x - turretX, p.y - turretY);
+                        if (dist < minDist) {
+                            minDist = dist;
+                            target = p;
+                        }
+                    }
+
+                    // Only fire if target is found AND player has enough ATP to pay for ammunition
+                    if (target) {
+                        if (atp >= turret.ammoCost) {
+                            atp -= turret.ammoCost; // Deduct ATP per shot
+                            document.getElementById('atp-display').innerText = atp;
+
+                            projectiles.push({ x: turretX, y: turretY, target: target, speed: 5 });
+                            turret.cooldown = 30; // Rate of fire
+                        } else {
+                            // Out of energy! Turret clicks and stalls.
+                            turret.cooldown = 15; 
+                        }
+                    }
+                }
+            }
+
+            // 3. Update Projectiles
+            for (let i = projectiles.length - 1; i >= 0; i--) {
+                let proj = projectiles[i];
+                if (!parasites.includes(proj.target)) {
+                    projectiles.splice(i, 1);
+                    continue;
+                }
+
+                let dx = proj.target.x - proj.x;
+                let dy = proj.target.y - proj.y;
+                let dist = Math.hypot(dx, dy);
+
+                if (dist < proj.speed) {
+                    proj.target.hp--;
+                    projectiles.splice(i, 1);
+                } else {
+                    proj.x += (dx / dist) * proj.speed;
+                    proj.y += (dy / dist) * proj.speed;
+                }
+            }
+        }
+
+        // --- RENDERING ---
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Draw Grid & Tiles
+            for (let r = 0; r < ROWS; r++) {
+                for (let c = 0; c < COLS; c++) {
+                    const tile = grid[r][c];
+                    const x = c * TILE_SIZE;
+                    const y = r * TILE_SIZE;
+
+                    ctx.strokeStyle = '#222';
+                    ctx.strokeRect(x, y, TILE_SIZE, TILE_SIZE);
+
+                    if (tile.type === 'vein') {
+                        ctx.fillStyle = '#611724';
+                        ctx.fillRect(x, y + 8, TILE_SIZE, TILE_SIZE - 16);
+                    } else if (tile.type === 'turret') {
+                        ctx.fillStyle = '#ffcc00';
+                        ctx.beginPath(); ctx.arc(x + TILE_SIZE/2, y + TILE_SIZE/2, 14, 0, Math.PI*2); ctx.fill();
+                        
+                        // Show warning light if ATP is too low to fire
+                        if (atp < 3) {
+                            ctx.fillStyle = '#ff3366';
+                            ctx.beginPath(); ctx.arc(x + TILE_SIZE/2, y + TILE_SIZE/2, 5, 0, Math.PI*2); ctx.fill();
+                        }
+                    }
+                }
+            }
+
+            // Draw Parasites
+            for (let p of parasites) {
+                ctx.fillStyle = '#39ff14';
+                ctx.beginPath(); ctx.arc(p.x, p.y, 8, 0, Math.PI*2); ctx.fill();
+
+                ctx.fillStyle = '#222';
+                ctx.fillRect(p.x - 12, p.y - 18, 24, 4);
+                ctx.fillStyle = '#ff3366';
+                ctx.fillRect(p.x - 12, p.y - 18, (p.hp / p.maxHp) * 24, 4);
+            }
+
+            // Draw Projectiles
+            for (let proj of projectiles) {
+                ctx.fillStyle = '#00f0ff';
+                ctx.beginPath(); ctx.arc(proj.x, proj.y, 3, 0, Math.PI*2); ctx.fill();
+            }
+        }
+
+        function loop() {
+            update();
+            draw();
+            requestAnimationFrame(loop);
+        }
+        loop();
+    </script>
+</body>
+</html>
