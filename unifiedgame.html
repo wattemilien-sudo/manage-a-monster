@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Biomechanical Logistics: Unified Command</title>
+    <style>
+        body {
+            background-color: #0d0e15;
+            color: #e0e6ed;
+            font-family: monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 15px;
+        }
+        canvas {
+            background-color: #1a1c29;
+            border: 2px solid #00f0ff;
+            box-shadow: 0 0 35px rgba(0, 240, 255, 0.25);
+        }
+        .dashboard {
+            display: flex;
+            gap: 15px;
+            background: #151722;
+            padding: 12px 20px;
+            border-radius: 6px;
+            border: 1px solid #333;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .controls {
+            margin-top: 12px;
+            display: flex;
+            gap: 10px;
+            background: #232635;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid #444;
+            align-items: center;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        button {
+            background: #333;
+            color: white;
+            border: 1px solid #555;
+            padding: 8px 12px;
+            cursor: pointer;
+            border-radius: 4px;
+            font-family: inherit;
+            transition: 0.2s;
+        }
+        button:hover { background: #444; }
+        .instructions {
+            color: #00f0ff;
+            max-width: 750px;
+            text-align: center;
+            margin-bottom: 10px;
+            line-height: 1.4;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+
+    <h2>Biomechanical Logistics: Integrated Defense Engine</h2>
+    <div class="instructions">
+        <strong>DEFEND THE GIANT:</strong> Parasites spawn and march toward the core. Turrets fire automatically. 
+        Keep Oxygen and Nutrients flowing to the Brain, manage your ATP, and trigger Sleep Mode to survive!
+    </div>
+
+    <div class="dashboard">
+        <div>Giant Health: <strong id="hp-display" style="color:#39ff14;">100%</strong></div>
+        <div>ATP Reserves: <strong id="atp-display" style="color:#ffcc00;">100</strong></div>
+        <div>Oxygen: <strong id="ox-display" style="color:#00f0ff;">10/20</strong></div>
+        <div>Nutrients: <strong id="nut-display" style="color:#ff9900;">10/20</strong></div>
+        <div>Insight: <strong id="insight-display" style="color:#bf80ff;">0</strong></div>
+    </div>
+
+    <div class="controls">
+        <button onclick="pumpOxygen()" style="border-color:#00f0ff;">Pump O2 (+5)</button>
+        <button onclick="pumpNutrients()" style="border-color:#ff9900;">Pump Nutrients (+5)</button>
+        <button onclick="toggleSleep()" id="sleep-btn">Toggle Sleep Mode</button>
+        <button onclick="triggerTrauma()" style="border-color:#ff3366;">Simulate Trauma</button>
+        <button onclick="dispatchGolem()" style="border-color:#39ff14;">Dispatch Repair Golem</button>
+    </div>
+
+    <br>
+    <canvas id="gameCanvas" width="700" height="400"></canvas>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Game State
+        let health = 100;
+        let atp = 100;
+        let oxygen = 10;
+        let nutrients = 10;
+        let insight = 0;
+        let isAsleep = false;
+        let golems = 3;
+
+        // Entities
+        let parasites = [];
+        let turrets = [{ x: 350, y: 150, range: 120, cooldown: 0 }];
+        let projectiles = [];
+        let veinsDamaged = false;
+        let spawnTimer = 0;
+
+        function pumpOxygen() { oxygen = Math.min(20, oxygen + 5); updateHUD(); }
+        function pumpNutrients() { nutrients = Math.min(20, nutrients + 5); updateHUD(); }
+        
+        function toggleSleep() {
+            isAsleep = !isAsleep;
+            let btn = document.getElementById('sleep-btn');
+            if (isAsleep) {
+                btn.style.background = '#1e3d59';
+                btn.style.color = '#00f0ff';
+                btn.innerText = "Waking Up Giant...";
+            } else {
+                btn.style.background = '#333';
+                btn.style.color = 'white';
+                btn.innerText = "Toggle Sleep Mode";
+            }
+        }
+
+        function triggerTrauma() {
+            veinsDamaged = true;
+        }
+
+        function dispatchGolem() {
+            if (golems > 0 && veinsDamaged) {
+                golems--;
+                veinsDamaged = false;
+                golems++;
+            }
+            updateHUD();
+        }
+
+        function updateHUD() {
+            document.getElementById('hp-display').innerText = Math.max(0, Math.floor(health)) + '%';
+            document.getElementById('atp-display').innerText = Math.floor(atp);
+            document.getElementById('ox-display').innerText = oxygen + '/20';
+            document.getElementById('nut-display').innerText = nutrients + '/20';
+            document.getElementById('insight-display').innerText = Math.floor(insight);
+        }
+
+        // Core Game Loop
+        function update() {
+            // Metabolic drain / regeneration
+            if (isAsleep) {
+                atp = Math.min(150, atp + 0.4);
+                health = Math.min(100, health + 0.05);
+            } else {
+                atp -= 0.05;
+                if (oxygen > 2 && nutrients > 2) {
+                    insight += 0.02;
+                    oxygen -= 0.01;
+                    nutrients -= 0.01;
+                }
+            }
+
+            if (veinsDamaged) {
+                atp = Math.max(0, atp - 0.05);
+                health = Math.max(0, health - 0.02);
+            }
+
+            // Parasite spawning (halts during sleep)
+            if (!isAsleep) {
+                spawnTimer++;
+                if (spawnTimer > 120) {
+                    spawnTimer = 0;
+                    parasites.push({
+                        x: Math.random() < 0.5 ? 0 : canvas.width,
+                        y: Math.random() * canvas.height,
+                        hp: 30,
+                        speed: 1.2
+                    });
+                }
+            }
+
+            // Update Parasites (Move toward Central Core at 350, 200)
+            let coreX = 350, coreY = 200;
+            for (let i = parasites.length - 1; i >= 0; i--) {
+                let p = parasites[i];
+                let dx = coreX - p.x;
+                let dy = coreY - p.y;
+                let dist = Math.hypot(dx, dy);
+
+                if (dist < 15) {
+                    health -= 5;
+                    parasites.splice(i, 1);
+                } else {
+                    p.x += (dx / dist) * p.speed;
+                    p.y += (dy / dist) * p.speed;
+                }
+            }
+
+            // Turret Logic
+            for (let t of turrets) {
+                if (t.cooldown > 0) t.cooldown--;
+                if (t.cooldown === 0 && parasites.length > 0) {
+                    // Find closest parasite
+                    let closest = null;
+                    let minDist = Infinity;
+                    for (let p of parasites) {
+                        let d = Math.hypot(p.x - t.x, p.y - t.y);
+                        if (d < t.range && d < minDist) {
+                            minDist = d;
+                            closest = p;
+                        }
+                    }
+                    if (closest) {
+                        projectiles.push({ x: t.x, y: t.y, target: closest, speed: 5 });
+                        t.cooldown = 30;
+                    }
+                }
+            }
+
+            // Update Projectiles
+            for (let i = projectiles.length - 1; i >= 0; i--) {
+                let pr = projectiles.push ? projectiles[i] : null;
+                if (!pr || !pr.target || parasites.indexOf(pr.target) === -1) {
+                    projectiles.splice(i, 1);
+                    continue;
+                }
+                let dx = pr.target.x - pr.x;
+                let dy = pr.target.y - pr.y;
+                let dist = Math.hypot(dx, dy);
+
+                if (dist < 6) {
+                    pr.target.hp -= 15;
+                    if (pr.target.hp <= 0) {
+                        let pIndex = parasites.indexOf(pr.target);
+                        if (pIndex > -1) parasites.splice(pIndex, 1);
+                        insight += 1;
+                    }
+                    projectiles.splice(i, 1);
+                } else {
+                    pr.x += (dx / dist) * pr.speed;
+                    pr.y += (dy / dist) * pr.speed;
+                }
+            }
+
+            updateHUD();
+        }
+
+        // Render Loop
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Draw Central Core Node
+            ctx.fillStyle = isAsleep ? '#1a3b5c' : '#4a154b';
+            ctx.strokeStyle = isAsleep ? '#00f0ff' : '#bf80ff';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.arc(350, 200, 35, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+
+            // Draw Veins
+            ctx.strokeStyle = veinsDamaged ? '#ff3366' : '#611724';
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            ctx.moveTo(0, 200); ctx.lineTo(canvas.width, 200);
+            ctx.moveTo(350, 0); ctx.lineTo(350, canvas.height);
+            ctx.stroke();
+
+            // Draw Turrets
+            for (let t of turrets) {
+                ctx.fillStyle = '#00f0ff';
+                ctx.beginPath();
+                ctx.arc(t.x, t.y, 12, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            // Draw Parasites
+            for (let p of parasites) {
+                ctx.fillStyle = '#ff3366';
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, 8, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            // Draw Projectiles
+            for (let pr of projectiles) {
+                ctx.fillStyle = '#39ff14';
+                ctx.beginPath();
+                ctx.arc(pr.x, pr.y, 3, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        function loop() {
+            update();
+            draw();
+            requestAnimationFrame(loop);
+        }
+        loop();
+    </script>
+</body>
+</html>
