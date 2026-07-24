@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Biomechanical Logistics: Magical Mutations</title>
+    <style>
+        body {
+            background-color: #0d0e15;
+            color: #e0e6ed;
+            font-family: monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 20px;
+        }
+        canvas {
+            background-color: #1a1c29;
+            border: 2px solid #4b0082;
+            box-shadow: 0 0 30px rgba(147, 112, 219, 0.3);
+        }
+        .controls {
+            margin-top: 15px;
+            display: flex;
+            gap: 12px;
+            background: #232635;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #4b0082;
+            align-items: center;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        button {
+            background: #333;
+            color: white;
+            border: 1px solid #555;
+            padding: 10px 15px;
+            cursor: pointer;
+            border-radius: 4px;
+            font-family: inherit;
+            transition: 0.2s;
+        }
+        button:hover { background: #444; }
+        button.unlocked { background: #2e8b57; border-color: #3cb371; cursor: default; }
+        .instructions {
+            color: #dda0dd;
+            max-width: 700px;
+            text-align: center;
+            margin-bottom: 10px;
+            line-height: 1.4;
+        }
+        .stats-panel {
+            display: flex;
+            gap: 20px;
+            background: #151722;
+            padding: 10px 20px;
+            border-radius: 6px;
+            border: 1px solid #4b0082;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <h2>Grid Module: Magical Mutations & Late-Game Tech</h2>
+    <div class="instructions">
+        <strong>LATE-GAME ASCENSION:</strong> Spend <strong>Insight</strong> to research mystical mutations.<br>
+        Harvest <strong>Mana</strong> from anomalous artifacts to power game-changing organ enhancements like Bioluminescent Lungs and Arcane Filtration!
+    </div>
+
+    <div class="stats-panel">
+        <div>Insight Points: <strong id="insight-display" style="color:#bf80ff; font-size: 1.2em;">50</strong></div>
+        <div>Mana Reserves: <strong id="mana-display" style="color:#00ffff; font-size: 1.2em;">0</strong></div>
+        <div>Oxygen Multiplier: <strong id="ox-mult" style="color:#39ff14;">1x (Standard)</strong></div>
+    </div>
+
+    <div class="controls">
+        <button id="btn-lungs" onclick="researchLungs()" style="border-color: #00ffff;">Research Bioluminescent Lungs (Cost: 20 Insight)</button>
+        <button id="btn-liver" onclick="researchLiver()" style="border-color: #9370db;">Research Arcane Liver (Cost: 30 Insight)</button>
+        <button onclick="triggerArtifact()" style="background: #4b0082; border-color: #da70d6; font-weight: bold;">Harvest Mana from Artifact</button>
+    </div>
+
+    <br>
+    <canvas id="gameCanvas" width="600" height="350"></canvas>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Game Resources
+        let insight = 50;
+        let mana = 10;
+        
+        // Mutation States
+        let lungsMutated = false;
+        let liverMutated = false;
+        let oxygenOutput = 10;
+        let toxinLevel = 40;
+
+        let arcaneParticles = [];
+
+        function updateDisplays() {
+            document.getElementById('insight-display').innerText = insight;
+            document.getElementById('mana-display').innerText = mana;
+            document.getElementById('ox-mult').innerText = lungsMutated ? '2x (Bioluminescent)' : '1x (Standard)';
+        }
+
+        function researchLungs() {
+            if (!lungsMutated && insight >= 20) {
+                insight -= 20;
+                lungsMutated = true;
+                oxygenOutput *= 2;
+                
+                let btn = document.getElementById('btn-lungs');
+                btn.innerText = "Bioluminescent Lungs ACTIVE";
+                btn.className = "unlocked";
+                updateDisplays();
+            }
+        }
+
+        function researchLiver() {
+            if (!liverMutated && insight >= 30) {
+                insight -= 30;
+                liverMutated = true;
+                toxinLevel = 0; // Instantly clears toxins
+
+                let btn = document.getElementById('btn-liver');
+                btn.innerText = "Arcane Liver ACTIVE";
+                btn.className = "unlocked";
+                updateDisplays();
+            }
+        }
+
+        function triggerArtifact() {
+            mana += 15;
+            insight += 5; // Artifact grants brief insight too
+            updateDisplays();
+        }
+
+        // --- CORE GAME LOOP (60 FPS) ---
+        function update() {
+            // Passive toxin accumulation if Arcane Liver isn't active
+            if (!liverMutated) {
+                toxinLevel += 0.05;
+                if (toxinLevel > 100) toxinLevel = 100;
+            }
+
+            // Spawn magical ambient particles if mutations are active
+            if ((lungsMutated || liverMutated) && Math.random() < 0.4) {
+                arcaneParticles.push({
+                    x: Math.random() * canvas.width,
+                    y: canvas.height + 10,
+                    speed: 1 + Math.random() * 2,
+                    size: 1 + Math.random() * 3,
+                    color: lungsMutated ? '#00ffff' : '#da70d6'
+                });
+            }
+
+            // Update particles
+            for (let i = arcaneParticles.length - 1; i >= 0; i--) {
+                let p = arcaneParticles[i];
+                p.y -= p.speed;
+                if (p.y < 0) {
+                    arcaneParticles.splice(i, 1);
+                }
+            }
+        }
+
+        // --- RENDERING ---
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Draw Background Grid/Conduits
+            ctx.strokeStyle = '#1f1a2e';
+            ctx.lineWidth = 2;
+            for (let i = 0; i < canvas.width; i += 40) {
+                ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, canvas.height); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(canvas.width, i); ctx.stroke();
+            }
+
+            // Draw Organs (Lungs & Liver nodes)
+            // Lungs Node (Left)
+            ctx.fillStyle = lungsMutated ? '#00cccc' : '#225566';
+            ctx.strokeStyle = lungsMutated ? '#00ffff' : '#4488aa';
+            ctx.lineWidth = lungsMutated ? 4 : 2;
+            ctx.beginPath(); ctx.arc(180, 175, 50, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 12px monospace';
+            ctx.fillText(lungsMutated ? 'BIOLUMINESCENT' : 'STANDARD LUNGS', 115, 170);
+            ctx.fillText('Output: ' + oxygenOutput + ' O2/s', 130, 190);
+
+            // Liver Node (Right)
+            ctx.fillStyle = liverMutated ? '#6a0dad' : '#553322';
+            ctx.strokeStyle = liverMutated ? '#da70d6' : '#885544';
+            ctx.lineWidth = liverMutated ? 4 : 2;
+            ctx.beginPath(); ctx.arc(420, 175, 50, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+
+            ctx.fillStyle = '#ffffff';
+            ctx.fillText(liverMutated ? 'ARCANE FILTRATION' : 'STANDARD LIVER', 350, 170);
+            ctx.fillText('Toxins: ' + Math.floor(toxinLevel) + '%', 375, 190);
+
+            // Draw Rising Mana/Arcane Particles
+            for (let p of arcaneParticles) {
+                ctx.fillStyle = p.color;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size, 0, Math.PI*2);
+                ctx.fill();
+            }
+        }
+
+        function loop() {
+            update();
+            draw();
+            requestAnimationFrame(loop);
+        }
+        updateDisplays();
+        loop();
+    </script>
+</body>
+</html>
