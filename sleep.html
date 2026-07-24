@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Biomechanical Logistics: Sleep Cycle</title>
+    <style>
+        body {
+            background-color: #0d0e15;
+            color: #e0e6ed;
+            font-family: monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 20px;
+        }
+        canvas {
+            background-color: #1a1c29;
+            border: 2px solid #333;
+            box-shadow: 0 0 25px rgba(0, 240, 255, 0.1);
+        }
+        .controls {
+            margin-top: 15px;
+            display: flex;
+            gap: 12px;
+            background: #232635;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #444;
+            align-items: center;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        button {
+            background: #333;
+            color: white;
+            border: 1px solid #555;
+            padding: 10px 15px;
+            cursor: pointer;
+            border-radius: 4px;
+            font-family: inherit;
+            transition: 0.2s;
+        }
+        button:hover { background: #444; }
+        button.sleep-active { background: #1e3d59; border-color: #00f0ff; color: #00f0ff; font-weight: bold; }
+        .instructions {
+            color: #00f0ff;
+            max-width: 700px;
+            text-align: center;
+            margin-bottom: 10px;
+            line-height: 1.4;
+        }
+        .stats-panel {
+            display: flex;
+            gap: 20px;
+            background: #151722;
+            padding: 10px 20px;
+            border-radius: 6px;
+            border: 1px solid #333;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <h2>Grid Module: Sleep Cycle & Peaceful Building</h2>
+    <div class="instructions">
+        <strong>METABOLIC PAUSE:</strong> Toggle Sleep Mode to let the giant rest.<br>
+        Oxygen/ATP demands plummet, parasites stop spawning, and the stomach empties—providing a safe sandbox to redesign your factory lines!
+    </div>
+
+    <div class="stats-panel">
+        <div>Giant State: <strong id="state-display" style="color:#39ff14;">AWAKE (Active)</strong></div>
+        <div>ATP Drain Rate: <strong id="drain-display" style="color:#ff3366;">High (-5/s)</strong></div>
+        <div>Stomach Content: <strong id="stomach-display" style="color:#ff9900;">Full (Digesting)</strong></div>
+    </div>
+
+    <div class="controls">
+        <button id="sleep-btn" onclick="toggleSleep()">Trigger Giant Sleep Cycle</button>
+        <div>ATP Reserves: <strong id="atp-display" style="color:#ffcc00; font-size: 1.2em;">80</strong></div>
+    </div>
+
+    <br>
+    <canvas id="gameCanvas" width="600" height="350"></canvas>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Game State
+        let isAsleep = false;
+        let atp = 80;
+        let stomachContent = 100; // Percentage of food/toxins in gut
+        
+        let sleepTransition = 0; // For visual fade effects
+        let zzzParticles = [];
+
+        function toggleSleep() {
+            isAsleep = !isAsleep;
+            let btn = document.getElementById('sleep-btn');
+            let stateDisplay = document.getElementById('state-display');
+            let drainDisplay = document.getElementById('drain-display');
+            let stomachDisplay = document.getElementById('stomach-display');
+
+            if (isAsleep) {
+                btn.innerText = "Wake Up Giant";
+                btn.className = "sleep-active";
+                stateDisplay.innerText = "ASLEEP (Peaceful Build Phase)";
+                stateDisplay.style.color = "#00f0ff";
+                drainDisplay.innerText = "Minimal (-1/s)";
+                drainDisplay.style.color = "#00f0ff";
+                stomachContent = 0; // Stomach completely empties during sleep
+                stomachDisplay.innerText = "Empty (Cleaned)";
+                stomachDisplay.style.color = "#39ff14";
+            } else {
+                btn.innerText = "Trigger Giant Sleep Cycle";
+                btn.className = "";
+                stateDisplay.innerText = "AWAKE (Active)";
+                stateDisplay.style.color = "#39ff14";
+                drainDisplay.innerText = "High (-5/s)";
+                drainDisplay.style.color = "#ff3366";
+                stomachContent = 100;
+                stomachDisplay.innerText = "Full (Digesting)";
+                stomachDisplay.style.color = "#ff9900";
+            }
+        }
+
+        function updateDisplays() {
+            document.getElementById('atp-display').innerText = Math.floor(atp);
+        }
+
+        // --- CORE GAME LOOP (60 FPS) ---
+        function update() {
+            // Metabolic drain based on sleep state
+            if (isAsleep) {
+                atp = Math.min(150, atp + 0.5); // Regenerate energy while resting
+                sleepTransition = Math.min(1, sleepTransition + 0.02);
+
+                // Spawn floating "Zzz" particles from the head
+                if (Math.random() < 0.05) {
+                    zzzParticles.push({
+                        x: 300 + (Math.random() - 0.5) * 40,
+                        y: 150,
+                        alpha: 1.0,
+                        scale: 10
+                    });
+                }
+            } else {
+                atp -= 0.08; // Active drain
+                if (atp < 0) atp = 0;
+                sleepTransition = Math.max(0, sleepTransition - 0.02);
+            }
+
+            // Update Zzz particles
+            for (let i = zzzParticles.length - 1; i >= 0; i--) {
+                let p = zzzParticles[i];
+                p.y -= 0.8;
+                p.scale += 0.2;
+                p.alpha -= 0.02;
+                if (p.alpha <= 0) zzzParticles.splice(i, 1);
+            }
+
+            updateDisplays();
+        }
+
+        // --- RENDERING ---
+        function draw() {
+            // Background dims slightly when asleep to show peaceful state
+            ctx.fillStyle = isAsleep ? '#0a0b10' : '#1a1c29';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Draw Central Organ / Giant Profile representation
+            ctx.fillStyle = isAsleep ? '#1f3a5f' : '#3a1f1f';
+            ctx.strokeStyle = isAsleep ? '#00f0ff' : '#ff3366';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.arc(300, 175, 70, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+
+            // Giant Face / Status Indicator inside the node
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 14px monospace';
+            ctx.fillText(isAsleep ? 'GIANT: SLEEPING' : 'GIANT: AWAKE', 230, 170);
+            
+            ctx.font = '11px monospace';
+            ctx.fillStyle = isAsleep ? '#00f0ff' : '#ffcc00';
+            ctx.fillText(isAsleep ? 'Logistics Unobstructed' : 'High Resource Stress', 225, 195);
+
+            // Draw Floating Zzzs if asleep
+            for (let p of zzzParticles) {
+                ctx.fillStyle = 'rgba(0, 240, 255,' + p.alpha + ')';
+                ctx.font = 'bold ' + Math.floor(p.scale) + 'px monospace';
+                ctx.fillText('Z', p.x, p.y);
+            }
+        }
+
+        function loop() {
+            update();
+            draw();
+            requestAnimationFrame(loop);
+        }
+        loop();
+    </script>
+</body>
+</html>
