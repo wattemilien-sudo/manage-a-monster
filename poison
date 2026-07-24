@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Biomechanical Logistics: Poisoned Arrow Breach</title>
+    <style>
+        body {
+            background-color: #0d0e15;
+            color: #e0e6ed;
+            font-family: monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 20px;
+        }
+        canvas {
+            background-color: #1a1c29;
+            border: 2px solid #800080;
+            box-shadow: 0 0 30px rgba(128, 0, 128, 0.4);
+        }
+        .controls {
+            margin-top: 15px;
+            display: flex;
+            gap: 12px;
+            background: #232635;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #444;
+            align-items: center;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        button {
+            background: #333;
+            color: white;
+            border: 1px solid #555;
+            padding: 10px 15px;
+            cursor: pointer;
+            border-radius: 4px;
+            font-family: inherit;
+            transition: 0.2s;
+        }
+        button:hover { background: #444; }
+        .instructions {
+            color: #cc66ff;
+            max-width: 700px;
+            text-align: center;
+            margin-bottom: 10px;
+            line-height: 1.4;
+        }
+        .stats-panel {
+            display: flex;
+            gap: 20px;
+            background: #151722;
+            padding: 10px 20px;
+            border-radius: 6px;
+            border: 1px solid #333;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <h2>Grid Module: Direct Bloodstream Poisoning</h2>
+    <div class="instructions">
+        <strong>TOXIC ASSAULT:</strong> A goblin's poisoned arrow has pierced the flank!<br>
+        Toxins are gushing directly into the main artery, bypassing the stomach. Dispatch a <strong>Purification Golem</strong> or build an <strong>Enzyme Filter</strong> to scrub the wound.
+    </div>
+
+    <div class="stats-panel">
+        <div>System Health: <strong id="health-display" style="color:#39ff14; font-size: 1.2em;">100%</strong></div>
+        <div>Bloodstream Toxicity: <strong id="toxin-display" style="color:#cc66ff; font-size: 1.2em;">0%</strong></div>
+        <div>Purification Units: <strong id="golems-display" style="color:#00f0ff;">2</strong></div>
+    </div>
+
+    <div class="controls">
+        <button onclick="triggerPoisonHit()" style="background: #4b0082; border-color: #cc66ff; font-weight: bold;">Simulate Goblin Arrow Strike</button>
+        <button onclick="dispatchPurifier()">Dispatch Purification Golem</button>
+        <button onclick="buildFilter()" style="background: #004080; border-color: #00f0ff;">Build Enzyme Filter (Cost: 30 ATP)</button>
+        <div>ATP: <strong id="atp-display" style="color:#ffcc00;">50</strong></div>
+    </div>
+
+    <br>
+    <canvas id="gameCanvas" width="600" height="400"></canvas>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        const TILE_SIZE = 40;
+        const COLS = canvas.width / TILE_SIZE;
+        const ROWS = canvas.height / TILE_SIZE;
+
+        // Grid & State Initialization
+        let grid = Array.from({ length: ROWS }, () => Array(COLS).fill({ type: 'empty' }));
+        const veinRow = 5;
+        for (let c = 1; c < COLS - 1; c++) {
+            grid[veinRow][c] = { type: 'vein', infected: false };
+        }
+
+        let atp = 50;
+        let systemHealth = 100;
+        let bloodstreamToxicity = 0;
+        let availableGolems = 2;
+        let activePurifiers = [];
+        let toxinParticles = [];
+        let woundActive = false;
+        let woundCol = 3;
+
+        function updateDisplays() {
+            document.getElementById('health-display').innerText = Math.max(0, Math.floor(systemHealth)) + '%';
+            document.getElementById('toxin-display').innerText = Math.floor(bloodstreamToxicity) + '%';
+            document.getElementById('golems-display').innerText = availableGolems;
+            document.getElementById('atp-display').innerText = Math.floor(atp);
+        }
+
+        function triggerPoisonHit() {
+            woundActive = true;
+            woundCol = Math.floor(Math.random() * 6) + 2;
+            grid[veinRow][woundCol].infected = true;
+        }
+
+        function dispatchPurifier() {
+            if (availableGolems > 0 && woundActive) {
+                availableGolems--;
+                activePurifiers.push({
+                    x: 300,
+                    y: 200,
+                    targetR: veinRow,
+                    targetC: woundCol
+                });
+            }
+        }
+
+        function buildFilter() {
+            if (atp >= 30 && woundActive) {
+                atp -= 30;
+                woundActive = false;
+                grid[veinRow][woundCol].infected = false;
+                bloodstreamToxicity = Math.max(0, bloodstreamToxicity - 25);
+            }
+            updateDisplays();
+        }
+
+        // --- CORE GAME LOOP (60 FPS) ---
+        function update() {
+            // Passive ATP generation
+            if (Math.random() < 0.05) atp += 1;
+
+            if (woundActive) {
+                bloodstreamToxicity = Math.min(100, bloodstreamToxicity + 0.1);
+                systemHealth = Math.max(0, systemHealth - 0.05);
+
+                // Spawn heavy purple toxin particles streaming down the vein
+                if (Math.random() < 0.6) {
+                    toxinParticles.push({
+                        x: woundCol * TILE_SIZE + TILE_SIZE / 2,
+                        y: veinRow * TILE_SIZE + TILE_SIZE / 2,
+                        vx: 1.5 + Math.random(),
+                        alpha: 1.0
+                    });
+                }
+            } else {
+                // Natural dissipation when treated
+                bloodstreamToxicity = Math.max(0, bloodstreamToxicity - 0.2);
+            }
+
+            // Update toxin stream movement
+            for (let i = toxinParticles.length - 1; i >= 0; i--) {
+                let p = toxinParticles[i];
+                p.x += p.vx;
+                p.alpha -= 0.015;
+                if (p.x > canvas.width || p.alpha <= 0) {
+                    toxinParticles.splice(i, 1);
+                }
+            }
+
+            // Update Purifier Golems
+            for (let i = activePurifiers.length - 1; i >= 0; i--) {
+                let g = activePurifiers[i];
+                let targetX = g.targetC * TILE_SIZE + TILE_SIZE / 2;
+                let targetY = g.targetR * TILE_SIZE + TILE_SIZE / 2;
+
+                let dx = targetX - g.x;
+                let dy = targetY - g.y;
+                let dist = Math.hypot(dx, dy);
+
+                if (dist < 4) {
+                    // Scrubbed the wound!
+                    woundActive = false;
+                    grid[g.targetR][g.targetC].infected = false;
+                    availableGolems++;
+                    activePurifiers.splice(i, 1);
+                } else {
+                    g.x += (dx / dist) * 3;
+                    g.y += (dy / dist) * 3;
+                }
+            }
+
+            updateDisplays();
+        }
+
+        // --- RENDERING ---
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Draw Grid & Veins
+            for (let r = 0; r < ROWS; r++) {
+                for (let c = 0; c < COLS; c++) {
+                    const tile = grid[r][c];
+                    const x = c * TILE_SIZE;
+                    const y = r * TILE_SIZE;
+
+                    ctx.strokeStyle = '#222';
+                    ctx.strokeRect(x, y, TILE_SIZE, TILE_SIZE);
+
+                    if (tile.type === 'vein') {
+                        if (tile.infected) {
+                            // Infected Arrow Puncture Wound
+                            ctx.fillStyle = '#300030';
+                            ctx.fillRect(x, y + 4, TILE_SIZE, TILE_SIZE - 8);
+                            ctx.strokeStyle = '#cc66ff';
+                            ctx.lineWidth = 2;
+                            ctx.strokeRect(x + 2, y + 2, TILE_SIZE - 4, TILE_SIZE - 4);
+                            ctx.lineWidth = 1;
+                        } else {
+                            ctx.fillStyle = '#611724';
+                            ctx.fillRect(x, y + 8, TILE_SIZE, TILE_SIZE - 16);
+                        }
+                    }
+                }
+            }
+
+            // Draw Toxin Particles streaming straight into the system
+            for (let p of toxinParticles) {
+                ctx.fillStyle = 'rgba(204, 102, 255,' + p.alpha + ')';
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, 4, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            // Draw Purification Golems
+            for (let g of activePurifiers) {
+                ctx.fillStyle = '#00ffff';
+                ctx.beginPath();
+                ctx.arc(g.x, g.y, 6, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        function loop() {
+            update();
+            draw();
+            requestAnimationFrame(loop);
+        }
+        loop();
+    </script>
+</body>
+</html>
