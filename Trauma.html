@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Biomechanical Logistics: Physical Trauma & Repair</title>
+    <style>
+        body {
+            background-color: #0d0e15;
+            color: #e0e6ed;
+            font-family: monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 20px;
+        }
+        canvas {
+            background-color: #1a1c29;
+            border: 2px solid #ff3366;
+            box-shadow: 0 0 30px rgba(255, 51, 102, 0.3);
+        }
+        .controls {
+            margin-top: 15px;
+            display: flex;
+            gap: 12px;
+            background: #232635;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #444;
+            align-items: center;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        button {
+            background: #333;
+            color: white;
+            border: 1px solid #555;
+            padding: 10px 15px;
+            cursor: pointer;
+            border-radius: 4px;
+            font-family: inherit;
+            transition: 0.2s;
+        }
+        button:hover { background: #444; }
+        .instructions {
+            color: #ff3366;
+            max-width: 700px;
+            text-align: center;
+            margin-bottom: 10px;
+            line-height: 1.4;
+        }
+        .stats-panel {
+            display: flex;
+            gap: 20px;
+            background: #151722;
+            padding: 10px 20px;
+            border-radius: 6px;
+            border: 1px solid #333;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <h2>Grid Module: Physical Trauma & Emergency Repairs</h2>
+    <div class="instructions">
+        <strong>TRAUMA ALERT:</strong> External blunt force has fractured the ribcage!<br>
+        Veins are ruptured and bleeding resources. Dispatch <strong>Worker-Golems</strong> to cauterize and repair the damaged grid coordinates.
+    </div>
+
+    <div class="stats-panel">
+        <div>ATP Reserves: <strong id="atp-display" style="color:#ffcc00; font-size: 1.2em;">100</strong></div>
+        <div>Active Leaks: <strong id="leaks-display" style="color:#ff3366;">0</strong></div>
+        <div>Available Golems: <strong id="golems-display" style="color:#00f0ff;">3</strong></div>
+    </div>
+
+    <div class="controls">
+        <button onclick="triggerTrauma()" style="background: #8b0000; border-color: #ff3366; font-weight: bold;">Simulate Mace Impact (Trauma)</button>
+        <button onclick="dispatchWorker()">Dispatch Repair Golem</button>
+    </div>
+
+    <br>
+    <canvas id="gameCanvas" width="600" height="400"></canvas>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        const TILE_SIZE = 40;
+        const COLS = canvas.width / TILE_SIZE;
+        const ROWS = canvas.height / TILE_SIZE;
+
+        // Grid Initialization
+        let grid = Array.from({ length: ROWS }, () => Array(COLS).fill({ type: 'empty' }));
+
+        // Vein Highway across Row 5
+        const veinRow = 5;
+        for (let c = 2; c < COLS - 2; c++) {
+            grid[veinRow][c] = { type: 'vein', damaged: false };
+        }
+
+        // Game State
+        let atp = 100;
+        let availableGolems = 3;
+        let activeWorkers = [];
+        let leakParticles = [];
+
+        function updateDisplays() {
+            let damagedCount = 0;
+            for(let r=0; r<ROWS; r++) {
+                for(let c=0; c<COLS; c++) {
+                    if(grid[r][c].damaged) damagedCount++;
+                }
+            }
+            document.getElementById('atp-display').innerText = Math.floor(atp);
+            document.getElementById('leaks-display').innerText = damagedCount;
+            document.getElementById('golems-display').innerText = availableGolems;
+        }
+
+        function triggerTrauma() {
+            // Smash a random section of the vein highway
+            let targetCol = Math.floor(Math.random() * (COLS - 6)) + 3;
+            for (let c = targetCol; c < targetCol + 3; c++) {
+                if (grid[veinRow][c].type === 'vein') {
+                    grid[veinRow][c].damaged = true;
+                }
+            }
+            updateDisplays();
+        }
+
+        function dispatchWorker() {
+            if (availableGolems > 0) {
+                // Find a damaged tile to fix
+                let targetTile = null;
+                for (let r = 0; r < ROWS; r++) {
+                    for (let c = 0; c < COLS; c++) {
+                        if (grid[r][c].damaged) {
+                            targetTile = { r: r, c: c };
+                            break;
+                        }
+                    }
+                    if (targetTile) break;
+                }
+
+                if (targetTile) {
+                    availableGolems--;
+                    activeWorkers.push({
+                        x: 300, // Spawn from central core
+                        y: 200,
+                        targetR: targetTile.r,
+                        targetC: targetTile.c,
+                        state: 'MOVING'
+                    });
+                }
+            }
+            updateDisplays();
+        }
+
+        // --- CORE GAME LOOP (60 FPS) ---
+        function update() {
+            // Check for damaged tiles and hemorrhage ATP
+            for (let r = 0; r < ROWS; r++) {
+                for (let c = 0; c < COLS; c++) {
+                    if (grid[r][c].damaged) {
+                        atp = Math.max(0, atp - 0.03); // Resource leakage penalty
+
+                        // Spawn internal bleeding hemorrhage particles
+                        if (Math.random() < 0.3) {
+                            leakParticles.push({
+                                x: c * TILE_SIZE + TILE_SIZE/2 + (Math.random() - 0.5) * 20,
+                                y: r * TILE_SIZE + TILE_SIZE/2 + (Math.random() - 0.5) * 20,
+                                vy: 0.5 + Math.random(),
+                                alpha: 1.0
+                            });
+                        }
+                    }
+                }
+            }
+
+            // Update leaking blood particles
+            for (let i = leakParticles.length - 1; i >= 0; i--) {
+                let p = leakParticles[i];
+                p.y += p.vy;
+                p.alpha -= 0.02;
+                if (p.alpha <= 0) leakParticles.splice(i, 1);
+            }
+
+            // Update Worker-Golems
+            for (let i = activeWorkers.length - 1; i >= 0; i--) {
+                let w = activeWorkers[i];
+                let targetX = w.targetC * TILE_SIZE + TILE_SIZE/2;
+                let targetY = w.targetR * TILE_SIZE + TILE_SIZE/2;
+
+                let dx = targetX - w.x;
+                let dy = targetY - w.y;
+                let dist = Math.hypot(dx, dy);
+
+                if (dist < 3) {
+                    // Arrived at damage site, repair it!
+                    grid[w.targetR][w.targetC].damaged = false;
+                    availableGolems++;
+                    activeWorkers.splice(i, 1);
+                } else {
+                    w.x += (dx / dist) * 2.5;
+                    w.y += (dy / dist) * 2.5;
+                }
+            }
+
+            updateDisplays();
+        }
+
+        // --- RENDERING ---
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Draw Grid & Veins
+            for (let r = 0; r < ROWS; r++) {
+                for (let c = 0; c < COLS; c++) {
+                    const tile = grid[r][c];
+                    const x = c * TILE_SIZE;
+                    const y = r * TILE_SIZE;
+
+                    ctx.strokeStyle = '#222';
+                    ctx.strokeRect(x, y, TILE_SIZE, TILE_SIZE);
+
+                    if (tile.type === 'vein') {
+                        if (tile.damaged) {
+                            // Crushed & Ruptured Vein
+                            ctx.fillStyle = '#4a0d18';
+                            ctx.fillRect(x, y + 5, TILE_SIZE, TILE_SIZE - 10);
+                            ctx.strokeStyle = '#ff3366';
+                            ctx.lineWidth = 2;
+                            ctx.strokeRect(x + 2, y + 2, TILE_SIZE - 4, TILE_SIZE - 4);
+                            ctx.lineWidth = 1;
+                        } else {
+                            // Healthy Vein
+                            ctx.fillStyle = '#611724';
+                            ctx.fillRect(x, y + 8, TILE_SIZE, TILE_SIZE - 16);
+                        }
+                    }
+                }
+            }
+
+            // Draw Hemorrhage Particles (Internal bleeding)
+            for (let p of leakParticles) {
+                ctx.fillStyle = 'rgba(255, 51, 102,' + p.alpha + ')';
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            // Draw Worker-Golems
+            for (let w of activeWorkers) {
+                ctx.fillStyle = '#00f0ff';
+                ctx.beginPath();
+                ctx.arc(w.x, w.y, 6, 0, Math.PI * 2);
+                ctx.fill();
+                // Repair tool glow
+                ctx.strokeStyle = '#ffffff';
+                ctx.stroke();
+            }
+        }
+
+        function loop() {
+            update();
+            draw();
+            requestAnimationFrame(loop);
+        }
+        loop();
+    </script>
+</body>
+</html>
