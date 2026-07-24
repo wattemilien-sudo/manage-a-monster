@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Biomechanical Logistics: Immune Defense Module</title>
+    <style>
+        body {
+            background-color: #0d0e15;
+            color: #e0e6ed;
+            font-family: monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 20px;
+        }
+        canvas {
+            background-color: #1a1c29;
+            border: 2px solid #333;
+            cursor: crosshair;
+            box-shadow: 0 0 20px rgba(255, 51, 102, 0.2);
+        }
+        .controls {
+            margin-top: 15px;
+            display: flex;
+            gap: 15px;
+            background: #232635;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #444;
+            align-items: center;
+        }
+        button {
+            background: #333;
+            color: white;
+            border: 1px solid #555;
+            padding: 10px 15px;
+            cursor: pointer;
+            border-radius: 4px;
+            font-family: inherit;
+            transition: 0.2s;
+        }
+        button:hover { background: #444; }
+        button.active-turret { background: #ffcc00; color: #000; border-color: #fff; font-weight: bold; }
+        button.active-spawner { background: #ff3366; color: #fff; border-color: #fff; font-weight: bold; }
+        .instructions {
+            color: #ffcc00;
+            max-width: 650px;
+            text-align: center;
+            margin-bottom: 10px;
+            line-height: 1.4;
+        }
+    </style>
+</head>
+<body>
+
+    <h2>Grid Module: Immune System & Defense</h2>
+    <div class="instructions">
+        <strong>DEFENSE PROTOCOL:</strong> Parasites (Green) are crawling down the Vein highway toward the Heart.<br>
+        Place <strong>Antibody Turrets</strong> (ranged defense) or <strong>Macrophage Spawners</strong> (mobile barracks) on empty tissue next to the veins to protect the organ!
+    </div>
+
+    <div class="controls">
+        <button id="btn-turret" class="active-turret" onclick="setBuildMode('turret')">Antibody Turret (Cost: 15 ATP)</button>
+        <button id="btn-spawner" onclick="setBuildMode('spawner')">Macrophage Barracks (Cost: 25 ATP)</button>
+        <div>ATP: <strong id="atp-display" style="color:#ffcc00; font-size: 1.2em;">60</strong></div>
+        <button onclick="spawnParasiteManual()" style="background: #115533;">Trigger Infection Wave</button>
+    </div>
+
+    <br>
+    <canvas id="gameCanvas" width="600" height="400"></canvas>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        const TILE_SIZE = 40;
+        const COLS = canvas.width / TILE_SIZE;
+        const ROWS = canvas.height / TILE_SIZE;
+
+        // Grid Initialization
+        let grid = Array.from({ length: ROWS }, () => Array(COLS).fill({ type: 'empty' }));
+
+        // Define a Vein Highway across the middle (Row 5)
+        const veinRow = 5;
+        for (let c = 1; c < COLS - 1; c++) {
+            grid[veinRow][c] = { type: 'vein' };
+        }
+
+        // Core Game Variables
+        let atp = 60;
+        let currentBuildMode = 'turret'; // 'turret' or 'spawner'
+        let parasites = [];
+        let projectiles = [];
+        let defenses = []; // Stores both turrets and barracks
+        let macrophages = []; // Mobile units deployed by spawners
+
+        // Auto-generate ATP
+        setInterval(() => {
+            atp += 2;
+            document.getElementById('atp-display').innerText = atp;
+        }, 1000);
+
+        // Periodic natural infection
+        setInterval(() => {
+            spawnParasite();
+        }, 5000);
+
+        function setBuildMode(mode) {
+            currentBuildMode = mode;
+            document.getElementById('btn-turret').className = mode === 'turret' ? 'active-turret' : '';
+            document.getElementById('btn-spawner').className = mode === 'spawner' ? 'active-spawner' : '';
+        }
+
+        function spawnParasite() {
+            parasites.push({
+                x: 1 * TILE_SIZE + TILE_SIZE/2,
+                y: veinRow * TILE_SIZE + TILE_SIZE/2,
+                hp: 4,
+                maxHp: 4,
+                speed: 1.2
+            });
+        }
+
+        function spawnParasiteManual() {
+            spawnParasite();
+        }
+
+        // Build defenses via mouse click
+        canvas.addEventListener('click', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const c = Math.floor((e.clientX - rect.left) / TILE_SIZE);
+            const r = Math.floor((e.clientY - rect.top) / TILE_SIZE);
+
+            if (r >= 0 && r < ROWS && c >= 0 && c < COLS && grid[r][c].type === 'empty') {
+                let cost = currentBuildMode === 'turret' ? 15 : 25;
+                
+                if (atp >= cost) {
+                    atp -= cost;
+                    document.getElementById('atp-display').innerText = atp;
+
+                    grid[r][c] = { type: currentBuildMode };
+                    defenses.push({
+                        r: r,
+                        c: c,
+                        type: currentBuildMode,
+                        range: currentBuildMode === 'turret' ? 100 : 140,
+                        cooldown: 0
+                    });
+                }
+            }
+        });
+
+        // --- GAME LOGIC (60 FPS) ---
+        function update() {
+            // 1. Update Parasites
+            for (let i = parasites.length - 1; i >= 0; i--) {
+                let p = parasites[i];
+                p.x += p.speed;
+
+                // Reached the end of the line (Heart breached)
+                if (p.x > (COLS - 1) * TILE_SIZE) {
+                    parasites.splice(i, 1);
+                    atp = Math.max(0, atp - 20);
+                    document.getElementById('atp-display').innerText = atp;
+                    continue;
+                }
+
+                if (p.hp <= 0) {
+                    parasites.splice(i, 1);
+                    atp += 8; // Reward for clearing infection
+                    document.getElementById('atp-display').innerText = atp;
+                }
+            }
+
+            // 2. Update Defenses (Turrets & Spawners)
+            for (let def of defenses) {
+                if (def.cooldown > 0) def.cooldown--;
+
+                let defX = def.c * TILE_SIZE + TILE_SIZE/2;
+                let defY = def.r * TILE_SIZE + TILE_SIZE/2;
+
+                if (def.cooldown === 0) {
+                    if (def.type === 'turret') {
+                        // Find closest parasite to shoot
+                        let target = null;
+                        let minDist = def.range;
+
+                        for (let p of parasites) {
+                            let dist = Math.hypot(p.x - defX, p.y - defY);
+                            if (dist < minDist) {
+                                minDist = dist;
+                                target = p;
+                            }
+                        }
+
+                        if (target) {
+                            projectiles.push({ x: defX, y: defY, target: target, speed: 5 });
+                            def.cooldown = 40; // Fire rate
+                        }
+                    } 
+                    else if (def.type === 'spawner') {
+                        // Check if there are active parasites in range to deploy a macrophage against
+                        let target = parasites.find(p => Math.hypot(p.x - defX, p.y - defY) <= def.range);
+                        if (target) {
+                            macrophage.spawnUnit(defX, defY, target);
+                            def.cooldown = 90; // Deployment cooldown
+                        }
+                    }
+                }
+            }
+
+            // 3. Update Projectiles
+            for (let i = projectiles.length - 1; i >= 0; i--) {
+                let proj = projectiles[i];
+                if (!parasites.includes(proj.target)) {
+                    projectiles.splice(i, 1);
+                    continue;
+                }
+
+                let dx = proj.target.x - proj.x;
+                let dy = proj.target.y - proj.y;
+                let dist = Math.hypot(dx, dy);
+
+                if (dist < proj.speed) {
+                    proj.target.hp--;
+                    projectiles.splice(i, 1);
+                } else {
+                    proj.x += (dx / dist) * proj.speed;
+                    proj.y += (dy / dist) * proj.speed;
+                }
+            }
+
+            // 4. Update Mobile Macrophages
+            for (let i = macrophages.length - 1; i >= 0; i--) {
+                let m = macrophages[i];
+                if (!parasites.includes(m.target)) {
+                    macrophages.splice(i, 1);
+                    continue;
+                }
+
+                let dx = m.target.x - m.x;
+                let dy = m.target.y - m.y;
+                let dist = Math.hypot(dx, dy);
+
+                if (dist < 10) {
+                    // Tackle and deal heavy damage
+                    m.target.hp -= 2;
+                    macrophages.splice(i, 1); // Macrophage consumes itself in attack
+                } else {
+                    m.x += (dx / dist) * m.speed;
+                    m.y += (dy / dist) * m.speed;
+                }
+            }
+        }
+
+        // Helper object for Macrophage units
+        const macrophage = {
+            spawnUnit(x, y, target) {
+                macrophages.push({ x: x, y: y, target: target, speed: 2.5 });
+            }
+        };
+
+        // --- RENDERING ---
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Draw Grid
+            for (let r = 0; r < ROWS; r++) {
+                for (let c = 0; c < COLS; c++) {
+                    const tile = grid[r][c];
+                    const x = c * TILE_SIZE;
+                    const y = r * TILE_SIZE;
+
+                    ctx.strokeStyle = '#222';
+                    ctx.strokeRect(x, y, TILE_SIZE, TILE_SIZE);
+
+                    if (tile.type === 'vein') {
+                        ctx.fillStyle = '#611724';
+                        ctx.fillRect(x, y + 8, TILE_SIZE, TILE_SIZE - 16);
+                    } else if (tile.type === 'turret') {
+                        ctx.fillStyle = '#ffcc00';
+                        ctx.beginPath(); ctx.arc(x + TILE_SIZE/2, y + TILE_SIZE/2, 12, 0, Math.PI*2); ctx.fill();
+                    } else if (tile.type === 'spawner') {
+                        ctx.fillStyle = '#ff3366';
+                        ctx.fillRect(x + 8, y + 8, TILE_SIZE - 16, TILE_SIZE - 16);
+                    }
+                }
+            }
+
+            // Draw Parasites
+            for (let p of parasites) {
+                ctx.fillStyle = '#39ff14';
+                ctx.beginPath(); ctx.arc(p.x, p.y, 8, 0, Math.PI*2); ctx.fill();
+
+                // Health bar
+                ctx.fillStyle = '#222';
+                ctx.fillRect(p.x - 12, p.y - 18, 24, 4);
+                ctx.fillStyle = '#ff3366';
+                ctx.fillRect(p.x - 12, p.y - 18, (p.hp / p.maxHp) * 24, 4);
+            }
+
+            // Draw Projectiles
+            for (let proj of projectiles) {
+                ctx.fillStyle = '#00f0ff';
+                ctx.beginPath(); ctx.arc(proj.x, proj.y, 3, 0, Math.PI*2); ctx.fill();
+            }
+
+            // Draw Mobile Macrophages
+            for (let m of macrophages) {
+                ctx.fillStyle = '#ffffff';
+                ctx.beginPath(); ctx.arc(m.x, m.y, 5, 0, Math.PI*2); ctx.fill();
+            }
+        }
+
+        // Loop Runner
+        function loop() {
+            update();
+            draw();
+            requestAnimationFrame(loop);
+        }
+        loop();
+    </script>
+</body>
+</html>
