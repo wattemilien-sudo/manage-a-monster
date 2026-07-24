@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Biomechanical Logistics: The Brain (Research Hub)</title>
+    <style>
+        body {
+            background-color: #0d0e15;
+            color: #e0e6ed;
+            font-family: monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 20px;
+        }
+        canvas {
+            background-color: #1a1c29;
+            border: 2px solid #333;
+            box-shadow: 0 0 25px rgba(138, 43, 226, 0.2);
+        }
+        .controls {
+            margin-top: 15px;
+            display: flex;
+            gap: 12px;
+            background: #232635;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #444;
+            align-items: center;
+        }
+        button {
+            background: #333;
+            color: white;
+            border: 1px solid #555;
+            padding: 10px 15px;
+            cursor: pointer;
+            border-radius: 4px;
+            font-family: inherit;
+            transition: 0.2s;
+        }
+        button:hover { background: #444; }
+        .instructions {
+            color: #bf80ff;
+            max-width: 650px;
+            text-align: center;
+            margin-bottom: 10px;
+            line-height: 1.4;
+        }
+        .stats-panel {
+            display: flex;
+            gap: 20px;
+            background: #151722;
+            padding: 10px 20px;
+            border-radius: 6px;
+            border: 1px solid #333;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <h2>Grid Module: The Brain (Research Hub)</h2>
+    <div class="instructions">
+        <strong>RESEARCH PIPELINE:</strong> The Brain requires a massive, uninterrupted supply of both <strong>Oxygen (Blue)</strong> and <strong>Nutrients (Orange)</strong>.<br>
+        If stocks remain stable, the Brain fires synapses and generates <strong>Insight Points</strong> for tech unlocks!
+    </div>
+
+    <div class="stats-panel">
+        <div>Oxygen Supply: <strong id="ox-display" style="color:#00f0ff;">10 / 10</strong></div>
+        <div>Nutrient Supply: <strong id="nut-display" style="color:#ff9900;">10 / 10</strong></div>
+        <div>Insight Points: <strong id="insight-display" style="color:#bf80ff; font-size: 1.2em;">0</strong></div>
+    </div>
+
+    <div class="controls">
+        <button onclick="pumpOxygen()" style="border-color: #00f0ff;">Pump Oxygen (+5)</button>
+        <button onclick="pumpNutrients()" style="border-color: #ff9900;">Pump Nutrients (+5)</button>
+        <button onclick="unlockTech()" style="background: #4b0082; border-color: #9933ff; font-weight: bold;">Unlock Neural Tech (Cost: 25)</button>
+    </div>
+
+    <br>
+    <canvas id="gameCanvas" width="600" height="350"></canvas>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Brain Node Position
+        const brain = { x: 300, y: 175, radius: 65, pulsing: 0 };
+
+        // Resource pools (Capacity max 20)
+        let oxygen = 10;
+        let nutrients = 10;
+        let insight = 0;
+        
+        let synapseParticles = [];
+
+        // Manual pump functions (simulating logistical vein delivery)
+        function pumpOxygen() {
+            oxygen = Math.min(20, oxygen + 5);
+            updateDisplay();
+        }
+
+        function pumpNutrients() {
+            nutrients = Math.min(20, nutrients + 5);
+            updateDisplay();
+        }
+
+        function unlockTech() {
+            if (insight >= 25) {
+                insight -= 25;
+                updateDisplay();
+                alert("SUCCESS: Advanced Synaptic Pathways Unlocked!");
+            } else {
+                alert("Not enough Insight Points! Maintain stable supplies to generate more.");
+            }
+        }
+
+        function updateDisplay() {
+            document.getElementById('ox-display').innerText = oxygen + " / 20";
+            document.getElementById('nut-display').innerText = nutrients + " / 20";
+            document.getElementById('insight-display').innerText = insight;
+        }
+
+        // --- CORE GAME LOOP (60 FPS) ---
+        function update() {
+            // Constant metabolic consumption of the brain
+            if (Math.random() < 0.03) {
+                if (oxygen > 0) oxygen -= 0.2;
+                if (nutrients > 0) nutrients -= 0.2;
+            }
+
+            // If both resources are above threshold, generate Insight Points
+            if (oxygen > 2 && nutrients > 2) {
+                insight += 0.05; // Gradual accumulation
+                brain.pulsing += 0.1;
+
+                // Spawn cosmetic synapse firing particles
+                if (Math.random() < 0.3) {
+                    let angle = Math.random() * Math.PI * 2;
+                    let dist = Math.random() * brain.radius;
+                    synapseParticles.push({
+                        x: brain.x + Math.cos(angle) * dist,
+                        y: brain.y + Math.sin(angle) * dist,
+                        alpha: 1.0,
+                        color: Math.random() > 0.5 ? '#00f0ff' : '#ff9900'
+                    });
+                }
+            } else {
+                // Starved brain slows down
+                brain.pulsing = 0;
+            }
+
+            updateDisplay();
+
+            // Update Synapses
+            for (let i = synapseParticles.length - 1; i >= 0; i--) {
+                let p = synapseParticles[i];
+                p.alpha -= 0.03;
+                if (p.alpha <= 0) {
+                    synapseParticles.splice(i, 1);
+                }
+            }
+        }
+
+        // --- RENDERING ---
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Draw Background Vein Conduits leading to the Brain
+            ctx.strokeStyle = '#2a1a3a';
+            ctx.lineWidth = 6;
+            ctx.beginPath();
+            ctx.moveTo(50, 175); ctx.lineTo(brain.x - brain.radius, brain.y);
+            ctx.moveTo(550, 175); ctx.lineTo(brain.x + brain.radius, brain.y);
+            ctx.stroke();
+            ctx.lineWidth = 1; // Reset line width
+
+            // Draw The Brain Organ Node
+            let pulseSize = brain.radius + Math.sin(brain.pulsing) * 4;
+            
+            // Outer glow if active
+            if (oxygen > 2 && nutrients > 2) {
+                let gradient = ctx.createRadialGradient(brain.x, brain.y, brain.radius * 0.5, brain.x, brain.y, pulseSize * 1.3);
+                gradient.addColorStop(0, 'rgba(138, 43, 226, 0.4)');
+                gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+                ctx.fillStyle = gradient;
+                ctx.beginPath(); ctx.arc(brain.x, brain.y, pulseSize * 1.3, 0, Math.PI*2); ctx.fill();
+            }
+
+            // Core Brain Body
+            ctx.fillStyle = '#4a154b';
+            ctx.strokeStyle = '#bf80ff';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.arc(brain.x, brain.y, pulseSize, 0, Math.PI*2);
+            ctx.fill();
+            ctx.stroke();
+            ctx.lineWidth = 1;
+
+            // Brain Label & Status Text
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 14px monospace';
+            ctx.fillText('THE BRAIN', brain.x - 35, brain.y - 5);
+            
+            ctx.font = '11px monospace';
+            if (oxygen > 2 && nutrients > 2) {
+                ctx.fillStyle = '#39ff14';
+                ctx.fillText('STATUS: PROCESSING', brain.x - 55, brain.y + 15);
+            } else {
+                ctx.fillStyle = '#ff3366';
+                ctx.fillText('STATUS: STARVING', brain.x - 50, brain.y + 15);
+            }
+
+            // Draw Synapse Firing Particles
+            for (let p of synapseParticles) {
+                ctx.fillStyle = p.color;
+                ctx.globalAlpha = p.alpha;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, 2, 0, Math.PI*2);
+                ctx.fill();
+                ctx.globalAlpha = 1.0;
+            }
+        }
+
+        function loop() {
+            update();
+            draw();
+            requestAnimationFrame(loop);
+        }
+        loop();
+    </script>
+</body>
+</html>
