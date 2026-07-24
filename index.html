@@ -42,14 +42,26 @@
             transition: 0.2s;
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
         }
+        .module-card.featured {
+            border-color: #39ff14;
+            background: #15221b;
+            grid-column: 1 / -1;
+        }
         .module-card:hover {
             border-color: #00f0ff;
             box-shadow: 0 0 20px rgba(0, 240, 255, 0.15);
             transform: translateY(-2px);
         }
+        .module-card.featured:hover {
+            border-color: #39ff14;
+            box-shadow: 0 0 20px rgba(57, 255, 20, 0.25);
+        }
         .module-card h3 {
             margin-top: 0;
             color: #ffcc00;
+        }
+        .module-card.featured h3 {
+            color: #39ff14;
         }
         .module-card p {
             color: #a0a6ed;
@@ -67,8 +79,11 @@
             margin-top: 15px;
             transition: 0.2s;
         }
-        .module-card a:hover {
+        .module-card.featured a {
             background: #39ff14;
+        }
+        .module-card a:hover {
+            opacity: 0.85;
         }
     </style>
 </head>
@@ -76,10 +91,17 @@
 
     <div class="header">
         <h1>Biomechanical Logistics Hub</h1>
-        <p>Select a subsystem module or prototype to launch into execution.</p>
+        <p>Launch the unified defense game or test individual subsystems.</p>
     </div>
 
     <div class="module-grid">
+        <!-- FEATURED UNIFIED GAME -->
+        <div class="module-card featured">
+            <h3>Unified Defense Engine (Playable Game)</h3>
+            <p>The complete integrated loop! Parasites spawn and attack the core automatically, turrets fire back, and you must manage resources, physical trauma, and sleep cycles in real-time.</p>
+            <a href="unified-game.html">Launch Full Game</a>
+        </div>
+
         <div class="module-card">
             <h3>The Brain</h3>
             <p>Research hub requiring continuous Oxygen and Nutrients to generate Insight Points for advanced technology unlocks.</p>
