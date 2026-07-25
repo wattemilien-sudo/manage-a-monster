@@ -13,11 +13,24 @@
             flex-direction: column;
             align-items: center;
             margin-top: 20px;
+            transition: background-color 0.1s;
         }
         canvas {
             background-color: #1a1c29;
             border: 2px solid #800080;
             box-shadow: 0 0 30px rgba(128, 0, 128, 0.4);
+            cursor: crosshair;
+        }
+        .mode-selector {
+            display: flex;
+            gap: 15px;
+            background: #151722;
+            padding: 15px 25px;
+            border-radius: 8px;
+            border: 1px solid #00f0ff;
+            margin-bottom: 20px;
+            box-shadow: 0 0 15px rgba(0, 240, 255, 0.2);
+            align-items: center;
         }
         .controls {
             margin-top: 15px;
@@ -40,8 +53,14 @@
             border-radius: 4px;
             font-family: inherit;
             transition: 0.2s;
+            font-weight: bold;
         }
         button:hover { background: #444; }
+        .btn-active {
+            background: #00f0ff !important;
+            color: #0d0e15 !important;
+            border-color: #00f0ff !important;
+        }
         .instructions {
             color: #cc66ff;
             max-width: 700px;
@@ -57,28 +76,61 @@
             border-radius: 6px;
             border: 1px solid #333;
             margin-bottom: 10px;
+            justify-content: center;
+        }
+        .game-ui {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
         }
     </style>
 </head>
 <body>
 
-    <h2>Grid Module: Direct Bloodstream Poisoning</h2>
-    <div class="instructions">
-        <strong>TOXIC ASSAULT:</strong> A goblin's poisoned arrow has pierced the flank!<br>
-        Toxins are gushing directly into the main artery, bypassing the stomach. Dispatch a <strong>Purification Golem</strong> or build an <strong>Enzyme Filter</strong> to scrub the wound.
+    <!-- HEADING MODULE: Mode Selector -->
+    <div class="mode-selector">
+        <h3 style="margin: 0; color: #00f0ff;">Select Module:</h3>
+        <button id="btn-game1" onclick="setGameMode(1)">Game 1: Build Enzyme Filter & Immunisation</button>
+        <button id="btn-game2" onclick="setGameMode(2)">Game 2: Dispatch Purification Golem</button>
     </div>
 
-    <div class="stats-panel">
-        <div>System Health: <strong id="health-display" style="color:#39ff14; font-size: 1.2em;">100%</strong></div>
-        <div>Bloodstream Toxicity: <strong id="toxin-display" style="color:#cc66ff; font-size: 1.2em;">0%</strong></div>
-        <div>Purification Units: <strong id="golems-display" style="color:#00f0ff;">2</strong></div>
+    <!-- WELCOME UI (Default state) -->
+    <div id="welcome-ui" class="game-ui">
+        <h2>System Standby</h2>
+        <div class="instructions">
+            <strong>WELCOME OPERATOR:</strong> Please select a module from the selector above to initialize the biomechanical interface protocol.
+        </div>
     </div>
 
-    <div class="controls">
-        <button onclick="triggerPoisonHit()" style="background: #4b0082; border-color: #cc66ff; font-weight: bold;">Simulate Goblin Arrow Strike</button>
-        <button onclick="dispatchPurifier()">Dispatch Purification Golem</button>
-        <button onclick="buildFilter()" style="background: #004080; border-color: #00f0ff;">Build Enzyme Filter (Cost: 30 ATP)</button>
-        <div>ATP: <strong id="atp-display" style="color:#ffcc00;">50</strong></div>
+    <!-- GAME 1 UI -->
+    <div id="game1-ui" class="game-ui" style="display: none;">
+        <h2>Grid Module: Toxic Reroute Protocol</h2>
+        <div class="instructions">
+            <strong>CRITICAL BREACH:</strong> Toxins are flowing from the left penetration wound straight to the Brain!<br>
+            Click on the grid to place <strong>Enzyme Blocks</strong> (Max 6) to reroute the toxic vein out through the Butt.<br>
+            Click an existing block to remove it and get it back. You have exactly <strong>1 attempt</strong>. If the brain takes <strong>10 hits</strong>, it's GAME OVER!
+        </div>
+
+        <div class="stats-panel">
+            <div>Brain Hits: <strong id="g1-hits-display" style="color:#ff3366; font-size: 1.2em;">0 / 10</strong></div>
+            <div>Blocks Available: <strong id="g1-blocks-display" style="color:#00f0ff; font-size: 1.2em;">6</strong></div>
+            <div>Vein Destination: <strong id="g1-target-display" style="color:#cc66ff;">Brain</strong></div>
+        </div>
+    </div>
+
+    <!-- GAME 2 UI -->
+    <div id="game2-ui" class="game-ui" style="display: none;">
+        <h2>Precision Module: Golem Drop Protocol</h2>
+        <div class="instructions" style="color: #00f0ff;">
+            <strong>MANUAL OVERRIDE:</strong> The purification golem must be dropped directly into the infection site.<br>
+            Press <strong>[SPACEBAR]</strong> to deploy the golem. Time it perfectly.
+        </div>
+        
+        <div class="stats-panel" style="border-color: #00f0ff;">
+            <div>Attempts Remaining: <strong id="g2-attempts-display" style="color:#ff3366; font-size: 1.2em;">5</strong></div>
+            <div>Target Status: <strong id="g2-status-display" style="color:#ffcc00; font-size: 1.2em;">Awaiting Drop</strong></div>
+        </div>
     </div>
 
     <br>
@@ -87,173 +139,459 @@
     <script>
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
+        let frameCount = 0;
 
+        // --- GLOBAL STATE ---
+        let currentGameMode = 0; // 0 = Standby / Unselected
+
+        function setGameMode(mode) {
+            currentGameMode = mode;
+            
+            document.getElementById('welcome-ui').style.display = mode === 0 ? 'flex' : 'none';
+            document.getElementById('game1-ui').style.display = mode === 1 ? 'flex' : 'none';
+            document.getElementById('game2-ui').style.display = mode === 2 ? 'flex' : 'none';
+            
+            document.getElementById('btn-game1').className = mode === 1 ? 'btn-active' : '';
+            document.getElementById('btn-game2').className = mode === 2 ? 'btn-active' : '';
+
+            if (mode === 1) resetGame1(true);
+            if (mode === 2) resetGame2(true);
+        }
+
+        // ==========================================
+        // GAME 1 LOGIC: Toxic Reroute Puzzle
+        // ==========================================
         const TILE_SIZE = 40;
-        const COLS = canvas.width / TILE_SIZE;
-        const ROWS = canvas.height / TILE_SIZE;
+        const COLS = canvas.width / TILE_SIZE; // 15
+        const ROWS = canvas.height / TILE_SIZE; // 10
 
-        // Grid & State Initialization
-        let grid = Array.from({ length: ROWS }, () => Array(COLS).fill({ type: 'empty' }));
-        const veinRow = 5;
-        for (let c = 1; c < COLS - 1; c++) {
-            grid[veinRow][c] = { type: 'vein', infected: false };
+        let g1_grid = [];
+        let g1_brain_hits = 0;
+        const G1_MAX_HITS = 10;
+        let g1_blocks = 6;
+        let g1_state = 'playing'; // 'playing', 'won', 'lost'
+        let g1_path = [];
+        let g1_target = 'brain';
+        let g1_particles = [];
+
+        function initGrid() {
+            g1_grid = Array.from({ length: ROWS }, () => Array(COLS).fill('empty'));
+            g1_grid[4][0] = 'start';  // Penetration spot (Left, Middle)
+            g1_grid[4][14] = 'brain'; // Brain (Right, Top-Middle)
+            g1_grid[7][14] = 'butt';  // Butt (Right, 3 lines below Brain)
         }
 
-        let atp = 50;
-        let systemHealth = 100;
-        let bloodstreamToxicity = 0;
-        let availableGolems = 2;
-        let activePurifiers = [];
-        let toxinParticles = [];
-        let woundActive = false;
-        let woundCol = 3;
-
-        function updateDisplays() {
-            document.getElementById('health-display').innerText = Math.max(0, Math.floor(systemHealth)) + '%';
-            document.getElementById('toxin-display').innerText = Math.floor(bloodstreamToxicity) + '%';
-            document.getElementById('golems-display').innerText = availableGolems;
-            document.getElementById('atp-display').innerText = Math.floor(atp);
-        }
-
-        function triggerPoisonHit() {
-            woundActive = true;
-            woundCol = Math.floor(Math.random() * 6) + 2;
-            grid[veinRow][woundCol].infected = true;
-        }
-
-        function dispatchPurifier() {
-            if (availableGolems > 0 && woundActive) {
-                availableGolems--;
-                activePurifiers.push({
-                    x: 300,
-                    y: 200,
-                    targetR: veinRow,
-                    targetC: woundCol
-                });
+        function resetGame1(fullReset = false) {
+            if (fullReset) {
+                g1_brain_hits = 0;
+                g1_state = 'playing';
             }
+            g1_blocks = 6;
+            g1_particles = [];
+            initGrid();
+            g1_path = updatePathGame1();
+            updateDisplaysGame1();
         }
 
-        function buildFilter() {
-            if (atp >= 30 && woundActive) {
-                atp -= 30;
-                woundActive = false;
-                grid[veinRow][woundCol].infected = false;
-                bloodstreamToxicity = Math.max(0, bloodstreamToxicity - 25);
-            }
-            updateDisplays();
-        }
-
-        // --- CORE GAME LOOP (60 FPS) ---
-        function update() {
-            // Passive ATP generation
-            if (Math.random() < 0.05) atp += 1;
-
-            if (woundActive) {
-                bloodstreamToxicity = Math.min(100, bloodstreamToxicity + 0.1);
-                systemHealth = Math.max(0, systemHealth - 0.05);
-
-                // Spawn heavy purple toxin particles streaming down the vein
-                if (Math.random() < 0.6) {
-                    toxinParticles.push({
-                        x: woundCol * TILE_SIZE + TILE_SIZE / 2,
-                        y: veinRow * TILE_SIZE + TILE_SIZE / 2,
-                        vx: 1.5 + Math.random(),
-                        alpha: 1.0
-                    });
-                }
+        function updateDisplaysGame1() {
+            document.getElementById('g1-hits-display').innerText = `${g1_brain_hits} / ${G1_MAX_HITS}`;
+            document.getElementById('g1-blocks-display').innerText = g1_blocks;
+            
+            const targetEl = document.getElementById('g1-target-display');
+            if (g1_target === 'brain') {
+                targetEl.innerText = 'BRAIN (DANGER)';
+                targetEl.style.color = '#ff3366';
+            } else if (g1_target === 'butt') {
+                targetEl.innerText = 'BUTT (SAFE)';
+                targetEl.style.color = '#39ff14';
             } else {
-                // Natural dissipation when treated
-                bloodstreamToxicity = Math.max(0, bloodstreamToxicity - 0.2);
+                targetEl.innerText = 'BLOCKED (FATAL)';
+                targetEl.style.color = '#ffcc00';
             }
-
-            // Update toxin stream movement
-            for (let i = toxinParticles.length - 1; i >= 0; i--) {
-                let p = toxinParticles[i];
-                p.x += p.vx;
-                p.alpha -= 0.015;
-                if (p.x > canvas.width || p.alpha <= 0) {
-                    toxinParticles.splice(i, 1);
-                }
-            }
-
-            // Update Purifier Golems
-            for (let i = activePurifiers.length - 1; i >= 0; i--) {
-                let g = activePurifiers[i];
-                let targetX = g.targetC * TILE_SIZE + TILE_SIZE / 2;
-                let targetY = g.targetR * TILE_SIZE + TILE_SIZE / 2;
-
-                let dx = targetX - g.x;
-                let dy = targetY - g.y;
-                let dist = Math.hypot(dx, dy);
-
-                if (dist < 4) {
-                    // Scrubbed the wound!
-                    woundActive = false;
-                    grid[g.targetR][g.targetC].infected = false;
-                    availableGolems++;
-                    activePurifiers.splice(i, 1);
-                } else {
-                    g.x += (dx / dist) * 3;
-                    g.y += (dy / dist) * 3;
-                }
-            }
-
-            updateDisplays();
         }
 
-        // --- RENDERING ---
-        function draw() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        function updatePathGame1() {
+            // BFS Pathfinding
+            const findPath = (targetR, targetC) => {
+                let queue = [[{r: 4, c: 0}]];
+                let visited = new Set(['4,0']);
+                let dirs = [[0, 1], [1, 0], [0, -1], [-1, 0]]; // Right, Down, Left, Up
 
-            // Draw Grid & Veins
+                while (queue.length > 0) {
+                    let path = queue.shift();
+                    let curr = path[path.length - 1];
+
+                    if (curr.r === targetR && curr.c === targetC) {
+                        return path;
+                    }
+
+                    for (let d of dirs) {
+                        let nr = curr.r + d[0], nc = curr.c + d[1];
+                        if (nr >= 0 && nr < ROWS && nc >= 0 && nc < COLS) {
+                            if (g1_grid[nr][nc] !== 'wall' && !visited.has(`${nr},${nc}`)) {
+                                visited.add(`${nr},${nc}`);
+                                queue.push([...path, {r: nr, c: nc}]);
+                            }
+                        }
+                    }
+                }
+                return null;
+            };
+
+            let brainPath = findPath(4, 14);
+            if (brainPath) {
+                g1_target = 'brain';
+                return brainPath;
+            }
+
+            let buttPath = findPath(7, 14);
+            if (buttPath) {
+                g1_target = 'butt';
+                return buttPath;
+            }
+
+            g1_target = 'none';
+            return null; // Both completely blocked
+        }
+
+        // Mouse click for placing or removing blocks
+        canvas.addEventListener('mousedown', (e) => {
+            if (currentGameMode === 1 && g1_state === 'playing') {
+                const rect = canvas.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                const c = Math.floor(x / TILE_SIZE);
+                const r = Math.floor(y / TILE_SIZE);
+
+                if (r >= 0 && r < ROWS && c >= 0 && c < COLS) {
+                    if (g1_grid[r][c] === 'empty' && g1_blocks > 0) {
+                        // Place a block
+                        g1_grid[r][c] = 'wall';
+                        g1_blocks--;
+                        g1_particles = []; // Clear particles to restart flow
+                        g1_path = updatePathGame1();
+                        
+                        // Check if player completely blocked the flow (bad)
+                        if (!g1_path) {
+                            triggerCriticalFailure();
+                        }
+                        updateDisplaysGame1();
+                    } else if (g1_grid[r][c] === 'wall') {
+                        // Remove an existing block
+                        g1_grid[r][c] = 'empty';
+                        g1_blocks++;
+                        g1_particles = [];
+                        g1_path = updatePathGame1();
+                        updateDisplaysGame1();
+                    }
+                }
+            }
+        });
+
+        function triggerCriticalFailure() {
+            // Instant Game Over if they completely block the vein with nowhere to go
+            g1_state = 'lost';
+            document.body.style.backgroundColor = '#400000';
+            setTimeout(() => document.body.style.backgroundColor = '#0d0e15', 300);
+            updateDisplaysGame1();
+        }
+
+        function updateGame1() {
+            if (g1_state !== 'playing') return;
+
+            // Spawn particles
+            if (frameCount % 45 === 0 && g1_path) {
+                g1_particles.push({ idx: 0, prog: 0 });
+            }
+
+            // Move particles
+            for (let i = g1_particles.length - 1; i >= 0; i--) {
+                let p = g1_particles[i];
+                p.prog += 0.04; // Movement speed
+                
+                if (p.prog >= 1.0) {
+                    p.prog = 0;
+                    p.idx++;
+                    
+                    // Reached the end of the path
+                    if (p.idx >= g1_path.length - 1) {
+                        if (g1_target === 'brain') {
+                            g1_brain_hits++;
+                            
+                            // Screen flash damage effect
+                            document.body.style.backgroundColor = '#400000';
+                            setTimeout(() => document.body.style.backgroundColor = '#0d0e15', 100);
+                            
+                            if (g1_brain_hits >= G1_MAX_HITS) {
+                                g1_state = 'lost';
+                            }
+                            updateDisplaysGame1();
+                        } else if (g1_target === 'butt') {
+                            g1_state = 'won';
+                        }
+                        g1_particles.splice(i, 1);
+                    }
+                }
+            }
+        }
+
+        function drawGame1() {
+            // Draw grid lines
+            ctx.strokeStyle = '#222';
+            ctx.lineWidth = 1;
             for (let r = 0; r < ROWS; r++) {
                 for (let c = 0; c < COLS; c++) {
-                    const tile = grid[r][c];
-                    const x = c * TILE_SIZE;
-                    const y = r * TILE_SIZE;
+                    ctx.strokeRect(c * TILE_SIZE, r * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+                }
+            }
 
-                    ctx.strokeStyle = '#222';
-                    ctx.strokeRect(x, y, TILE_SIZE, TILE_SIZE);
+            // Draw the generated vein path
+            if (g1_path && g1_path.length > 0) {
+                ctx.strokeStyle = 'rgba(204, 102, 255, 0.4)';
+                ctx.lineWidth = 6;
+                ctx.beginPath();
+                for (let i = 0; i < g1_path.length; i++) {
+                    let pt = g1_path[i];
+                    let px = pt.c * TILE_SIZE + TILE_SIZE / 2;
+                    let py = pt.r * TILE_SIZE + TILE_SIZE / 2;
+                    if (i === 0) ctx.moveTo(px, py);
+                    else ctx.lineTo(px, py);
+                }
+                ctx.stroke();
+            }
 
-                    if (tile.type === 'vein') {
-                        if (tile.infected) {
-                            // Infected Arrow Puncture Wound
-                            ctx.fillStyle = '#300030';
-                            ctx.fillRect(x, y + 4, TILE_SIZE, TILE_SIZE - 8);
-                            ctx.strokeStyle = '#cc66ff';
-                            ctx.lineWidth = 2;
-                            ctx.strokeRect(x + 2, y + 2, TILE_SIZE - 4, TILE_SIZE - 4);
-                            ctx.lineWidth = 1;
-                        } else {
-                            ctx.fillStyle = '#611724';
-                            ctx.fillRect(x, y + 8, TILE_SIZE, TILE_SIZE - 16);
-                        }
+            // Draw Grid Entities
+            for (let r = 0; r < ROWS; r++) {
+                for (let c = 0; c < COLS; c++) {
+                    let type = g1_grid[r][c];
+                    let x = c * TILE_SIZE;
+                    let y = r * TILE_SIZE;
+                    let cx = x + TILE_SIZE / 2;
+                    let cy = y + TILE_SIZE / 2;
+
+                    if (type === 'wall') {
+                        ctx.fillStyle = '#bbb';
+                        ctx.fillRect(x + 2, y + 2, TILE_SIZE - 4, TILE_SIZE - 4);
+                        ctx.fillStyle = '#eee';
+                        ctx.fillRect(x + 4, y + 4, TILE_SIZE - 12, TILE_SIZE - 12);
+                    } else if (type === 'start') {
+                        ctx.fillStyle = '#800000'; // Wound
+                        ctx.beginPath(); ctx.arc(cx, cy, 14, 0, Math.PI * 2); ctx.fill();
+                        ctx.fillStyle = '#39ff14'; // Toxin leak
+                        ctx.beginPath(); ctx.arc(cx, cy, 8, 0, Math.PI * 2); ctx.fill();
+                    } else if (type === 'brain') {
+                        // Calculate brain swelling (10% increase per hit)
+                        let swellFactor = 1 + (g1_brain_hits * 0.1);
+                        
+                        ctx.fillStyle = '#ff99cc'; // Pink Brain
+                        ctx.beginPath();
+                        ctx.arc(cx - (5 * swellFactor), cy - (3 * swellFactor), 10 * swellFactor, 0, Math.PI * 2);
+                        ctx.arc(cx + (5 * swellFactor), cy - (3 * swellFactor), 10 * swellFactor, 0, Math.PI * 2);
+                        ctx.arc(cx, cy + (5 * swellFactor), 12 * swellFactor, 0, Math.PI * 2);
+                        ctx.fill();
+                    } else if (type === 'butt') {
+                        ctx.fillStyle = '#e6a88a'; // Peach/Brown Butt
+                        ctx.beginPath();
+                        ctx.arc(cx - 8, cy, 12, 0, Math.PI * 2);
+                        ctx.arc(cx + 8, cy, 12, 0, Math.PI * 2);
+                        ctx.fill();
+                        ctx.strokeStyle = '#222';
+                        ctx.lineWidth = 2;
+                        ctx.beginPath();
+                        ctx.moveTo(cx, cy - 10);
+                        ctx.lineTo(cx, cy + 10);
+                        ctx.stroke();
                     }
                 }
             }
 
-            // Draw Toxin Particles streaming straight into the system
-            for (let p of toxinParticles) {
-                ctx.fillStyle = 'rgba(204, 102, 255,' + p.alpha + ')';
-                ctx.beginPath();
-                ctx.arc(p.x, p.y, 4, 0, Math.PI * 2);
-                ctx.fill();
+            // Draw Particles
+            for (let p of g1_particles) {
+                if (g1_path && g1_path[p.idx + 1]) {
+                    let pt1 = g1_path[p.idx];
+                    let pt2 = g1_path[p.idx + 1];
+                    let px = pt1.c * TILE_SIZE + TILE_SIZE / 2 + (pt2.c - pt1.c) * TILE_SIZE * p.prog;
+                    let py = pt1.r * TILE_SIZE + TILE_SIZE / 2 + (pt2.r - pt1.r) * TILE_SIZE * p.prog;
+                    
+                    ctx.fillStyle = '#39ff14'; // Toxic bright green
+                    ctx.beginPath();
+                    ctx.arc(px, py, 6, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.strokeStyle = '#fff';
+                    ctx.lineWidth = 1;
+                    ctx.stroke();
+                }
             }
 
-            // Draw Purification Golems
-            for (let g of activePurifiers) {
-                ctx.fillStyle = '#00ffff';
-                ctx.beginPath();
-                ctx.arc(g.x, g.y, 6, 0, Math.PI * 2);
-                ctx.fill();
+            // Win/Loss Overlay
+            if (g1_state === 'won') {
+                drawOverlay('SYSTEM SAVED: TOXINS EXPELLED', '#39ff14');
+            } else if (g1_state === 'lost') {
+                drawOverlay('BRAIN DEAD: GAME OVER', '#ff3366');
             }
         }
 
+        // ==========================================
+        // GAME 2 LOGIC: Golem Drop Minigame
+        // ==========================================
+        let g2_golemX = 300;
+        let g2_golemY = 30;
+        let g2_golemRadius = 12;
+        let g2_golemSpeed = 5.0;
+        let g2_golemDir = 1;
+        
+        let g2_isDropping = false;
+        let g2_dropSpeed = 7;
+        
+        let g2_attempts = 5;
+        let g2_state = 'playing';
+        
+        let g2_targetWidth = 35; 
+        let g2_targetHeight = 20;
+        let g2_targetX = 300 - (g2_targetWidth / 2);
+        let g2_targetY = 360;
+
+        function resetGame2(fullReset = false) {
+            if (fullReset) {
+                g2_attempts = 5;
+                g2_golemSpeed = 5.0; 
+                g2_state = 'playing';
+                document.getElementById('g2-status-display').innerText = "Awaiting Drop";
+                document.getElementById('g2-status-display').style.color = "#ffcc00";
+            }
+            g2_isDropping = false;
+            g2_golemY = 30;
+            g2_golemX = Math.random() > 0.5 ? 50 : canvas.width - 50; 
+            document.getElementById('g2-attempts-display').innerText = g2_attempts;
+        }
+
+        // Global keydown handler for restarts and drops
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Space') {
+                e.preventDefault();
+                
+                // Game 1 restarts
+                if (currentGameMode === 1 && g1_state !== 'playing') {
+                    resetGame1(true);
+                }
+                
+                // Game 2 logic
+                if (currentGameMode === 2) {
+                    if (g2_state === 'playing' && !g2_isDropping) {
+                        g2_isDropping = true;
+                        document.getElementById('g2-status-display').innerText = "Dropping...";
+                    } else if (g2_state !== 'playing') {
+                        resetGame2(true);
+                    }
+                }
+            }
+        });
+
+        function updateGame2() {
+            if (g2_state !== 'playing') return;
+
+            if (!g2_isDropping) {
+                g2_golemX += g2_golemSpeed * g2_golemDir;
+                if (g2_golemX <= g2_golemRadius || g2_golemX >= canvas.width - g2_golemRadius) {
+                    g2_golemDir *= -1;
+                    g2_golemSpeed += 0.5; 
+                }
+            } else {
+                g2_golemY += g2_dropSpeed;
+
+                if (g2_golemY + g2_golemRadius >= g2_targetY) {
+                    if (g2_golemX >= g2_targetX && g2_golemX <= g2_targetX + g2_targetWidth) {
+                        g2_state = 'won';
+                        document.getElementById('g2-status-display').innerText = "TARGET SECURED!";
+                        document.getElementById('g2-status-display').style.color = "#39ff14";
+                    } else {
+                        g2_attempts--;
+                        if (g2_attempts <= 0) {
+                            g2_state = 'lost';
+                            document.getElementById('g2-attempts-display').innerText = "0";
+                            document.getElementById('g2-status-display').innerText = "SYSTEM FAILURE";
+                            document.getElementById('g2-status-display').style.color = "#ff3366";
+                        } else {
+                            document.getElementById('g2-status-display').innerText = "Missed! Retrying...";
+                            resetGame2(false);
+                        }
+                    }
+                }
+            }
+        }
+
+        function drawGame2() {
+            ctx.strokeStyle = '#222';
+            ctx.lineWidth = 1;
+            for(let i=0; i<canvas.width; i+=40) {
+                ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, canvas.height); ctx.stroke();
+            }
+
+            ctx.fillStyle = 'rgba(57, 255, 20, 0.2)';
+            ctx.fillRect(g2_targetX, g2_targetY, g2_targetWidth, g2_targetHeight);
+            ctx.strokeStyle = '#39ff14';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(g2_targetX, g2_targetY, g2_targetWidth, g2_targetHeight);
+            
+            ctx.fillStyle = '#39ff14';
+            ctx.fillRect(g2_targetX + (g2_targetWidth/2) - 1, g2_targetY, 2, g2_targetHeight);
+
+            ctx.fillStyle = '#00ffff';
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = '#00ffff';
+            ctx.beginPath();
+            ctx.arc(g2_golemX, g2_golemY, g2_golemRadius, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.shadowBlur = 0; 
+
+            if (g2_state === 'won') {
+                drawOverlay('INFECTION PURIFIED', '#39ff14');
+            } else if (g2_state === 'lost') {
+                drawOverlay('TOXICITY CRITICAL: GAME OVER', '#ff3366');
+            }
+        }
+
+        // Shared overlay renderer
+        function drawOverlay(mainText, color) {
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = color;
+            ctx.font = 'bold 30px monospace';
+            ctx.textAlign = 'center';
+            ctx.fillText(mainText, canvas.width / 2, canvas.height / 2 - 10);
+            ctx.fillStyle = '#fff';
+            ctx.font = '16px monospace';
+            ctx.fillText('Press [SPACEBAR] to play again', canvas.width / 2, canvas.height / 2 + 30);
+        }
+
+        // ==========================================
+        // MASTER LOOP
+        // ==========================================
         function loop() {
-            update();
-            draw();
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            frameCount++;
+
+            if (currentGameMode === 0) {
+                // Standby screen canvas message
+                ctx.fillStyle = '#00f0ff';
+                ctx.font = 'bold 20px monospace';
+                ctx.textAlign = 'center';
+                ctx.fillText('AWAITING MODULE SELECTION', canvas.width / 2, canvas.height / 2 - 10);
+                ctx.fillStyle = '#888';
+                ctx.font = '14px monospace';
+                ctx.fillText('Select a game mode above to start', canvas.width / 2, canvas.height / 2 + 20);
+            } else if (currentGameMode === 1) {
+                updateGame1();
+                drawGame1();
+            } else if (currentGameMode === 2) {
+                updateGame2();
+                drawGame2();
+            }
+
             requestAnimationFrame(loop);
         }
+        
+        // Initialize and Start engine on standby
         loop();
     </script>
 </body>
