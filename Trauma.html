@@ -206,10 +206,8 @@
                     e.preventDefault();
                     if (pongState === 'ready') {
                         pongState = 'playing';
-                    } else if (pongState === 'won') {
+                    } else if (pongState === 'won' || pongState === 'lost') {
                         resetToOffline();
-                    } else if (pongState === 'lost') {
-                        returnToGrid();
                     }
                 }
             }
@@ -227,6 +225,15 @@
             activeWorkers = [];
             leakParticles = [];
 
+            // Reset grid damage status
+            for(let r=0; r<ROWS; r++) {
+                for(let c=0; c<COLS; c++) {
+                    if(grid[r][c].type === 'vein') {
+                        grid[r][c].damaged = false;
+                    }
+                }
+            }
+
             document.getElementById('controls-panel').style.display = 'flex';
             document.getElementById('instruction-text').innerHTML = `
                 <strong>SYSTEM STANDBY:</strong> Grid offline. Click <strong>Dispatch Repair Golem</strong> to initialize grid activity and engage repair protocols.
@@ -236,21 +243,6 @@
                 <div>Active Leaks: <strong id="leaks-display" style="color:#ff3366;">0</strong></div>
                 <div>Available Golems: <strong id="golems-display" style="color:#00f0ff;">3</strong></div>
             `;
-        }
-
-        function returnToGrid() {
-            currentMode = 'grid';
-            document.getElementById('controls-panel').style.display = 'flex';
-            document.getElementById('instruction-text').innerHTML = `
-                <strong>TRAUMA ALERT:</strong> External blunt force has fractured the ribcage!<br>
-                Veins are ruptured and bleeding resources. Dispatch <strong>Worker-Golems</strong> to cauterize and repair the damaged grid coordinates.
-            `;
-            document.getElementById('stats-panel').innerHTML = `
-                <div>ATP Reserves: <strong id="atp-display" style="color:#ffcc00; font-size: 1.2em;">100</strong></div>
-                <div>Active Leaks: <strong id="leaks-display" style="color:#ff3366;">0</strong></div>
-                <div>Available Golems: <strong id="golems-display" style="color:#00f0ff;">3</strong></div>
-            `;
-            updateDisplays();
         }
 
         // --- CORE GAME LOOP (60 FPS) ---
@@ -464,7 +456,7 @@
                 if (pongState === 'won') {
                     drawOverlay('TRAUMA REPAIRED!', '#39ff14', 'Press [SPACEBAR] to shut down system');
                 } else if (pongState === 'lost') {
-                    drawOverlay('SYSTEM FAILURE: RUPTURE UNCONTAINED', '#ff3366', 'Press [SPACEBAR] to return to grid');
+                    drawOverlay('SYSTEM FAILURE: RUPTURE UNCONTAINED', '#ff3366', 'Press [SPACEBAR] to shut down system');
                 }
             }
         }
