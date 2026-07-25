@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Biomechanical Logistics: Repair Tissue Module</title>
+    <style>
+        body {
+            background-color: #0d0e15;
+            color: #e0e6ed;
+            font-family: monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 20px;
+        }
+        canvas {
+            background-color: #1a1c29;
+            border: 2px solid #333;
+            box-shadow: 0 0 20px rgba(255, 51, 102, 0.2);
+        }
+        .controls {
+            margin-top: 15px;
+            display: flex;
+            gap: 15px;
+            background: #232635;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #444;
+            align-items: center;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        button {
+            background: #333;
+            color: white;
+            border: 1px solid #555;
+            padding: 10px 15px;
+            cursor: pointer;
+            border-radius: 4px;
+            font-family: inherit;
+            transition: 0.2s;
+        }
+        button:hover { background: #444; }
+        .instructions {
+            color: #ffcc00;
+            max-width: 650px;
+            text-align: center;
+            margin-bottom: 10px;
+            line-height: 1.4;
+        }
+    </style>
+</head>
+<body>
+
+    <h2>Grid Module: Repair Tissue (Bone Fracture)</h2>
+    <div class="instructions" id="instruction-text">
+        <strong>SYSTEM IDLE:</strong> Engage the repair protocol to mend the fractured bone tissue.
+    </div>
+
+    <div class="controls" id="controls-panel">
+        <button id="btn-repair" onclick="startRepairTissue()">Start Repair Protocol</button>
+    </div>
+
+    <br>
+    <canvas id="gameCanvas" width="600" height="400"></canvas>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        let gameState = 'idle'; // 'idle', 'playing', 'win', 'retryWait', 'gameOver'
+        let repairScore = 0;
+        let repairTimer = 10;
+        let repairInterval = null;
+        let repairAttempts = 2;
+        let activeSquareIndex = -1;
+
+        const repairSquares = [
+            { x: 100, y: 100, size: 70 },
+            { x: 265, y: 100, size: 70 },
+            { x: 430, y: 100, size: 70 },
+            { x: 100, y: 220, size: 70 },
+            { x: 265, y: 220, size: 70 },
+            { x: 430, y: 220, size: 70 }
+        ];
+
+        function resetToIdle() {
+            gameState = 'idle';
+            repairAttempts = 2;
+            clearInterval(repairInterval);
+
+            document.getElementById('instruction-text').innerHTML = `
+                <strong>SYSTEM IDLE:</strong> Engage the repair protocol to mend the fractured bone tissue.
+            `;
+            document.getElementById('controls-panel').innerHTML = `
+                <button id="btn-repair" onclick="startRepairTissue()">Start Repair Protocol</button>
+            `;
+        }
+
+        function startRepairTissue() {
+            if (repairAttempts <= 0) return; // Locked out if game over
+
+            gameState = 'playing';
+            repairScore = 0;
+            repairTimer = 10;
+            pickRandomSquare();
+
+            document.getElementById('instruction-text').innerHTML = `
+                <strong>REPAIR TISSUE ACTIVE:</strong> Click the flashing yellow squares as fast as you can! Time: <span id="repair-time" style="color:#ffcc00;">10</span>s | Score: <span id="repair-score" style="color:#39ff14;">0</span> (Need > 8 to win)
+            `;
+            document.getElementById('controls-panel').innerHTML = `
+                <button onclick="resetToIdle()" style="background: #551111;">Abort Protocol</button>
+            `;
+
+            clearInterval(repairInterval);
+            repairInterval = setInterval(() => {
+                repairTimer--;
+                let timeEl = document.getElementById('repair-time');
+                if (timeEl) timeEl.innerText = repairTimer;
+
+                if (repairTimer <= 0) {
+                    clearInterval(repairInterval);
+                    endRepairTissue();
+                }
+            }, 1000);
+        }
+
+        function pickRandomSquare() {
+            let newIndex;
+            do {
+                newIndex = Math.floor(Math.random() * repairSquares.length);
+            } while (newIndex === activeSquareIndex);
+            activeSquareIndex = newIndex;
+        }
+
+        function endRepairTissue() {
+            let won = repairScore > 8;
+
+            if (won) {
+                gameState = 'win';
+                document.getElementById('instruction-text').innerHTML = `
+                    <strong>PROTOCOL SUCCESSFUL:</strong> Bone tissue successfully mended!
+                `;
+                document.getElementById('controls-panel').innerHTML = `
+                    <button onclick="resetToIdle()">Return to Menu</button>
+                `;
+            } else {
+                repairAttempts--;
+                if (repairAttempts > 0) {
+                    gameState = 'retryWait';
+                    document.getElementById('instruction-text').innerHTML = `
+                        <strong>PROTOCOL FAILED:</strong> Insufficient tissue bonding. <span style="color:#ff3366;">1 attempt left</span>. Press <strong>SPACEBAR</strong> to retry.
+                    `;
+                    document.getElementById('controls-panel').innerHTML = `
+                        <div style="color:#ff3366;">1 Attempt Left</div>
+                        <button onclick="resetToIdle()">Return to Menu</button>
+                    `;
+                } else {
+                    gameState = 'gameOver';
+                    document.getElementById('instruction-text').innerHTML = `
+                        <strong style="color:#ff3366;">GAME OVER:</strong> All repair attempts exhausted. System locked.
+                    `;
+                    document.getElementById('controls-panel').innerHTML = `
+                        <div style="color:#ff3366;">SYSTEM LOCKED</div>
+                    `;
+                }
+            }
+        }
+
+        window.addEventListener('keydown', (e) => {
+            if (e.code === 'Space' && gameState === 'retryWait') {
+                e.preventDefault();
+                startRepairTissue();
+            }
+        });
+
+        canvas.addEventListener('click', (e) => {
+            if (gameState !== 'playing') return;
+
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+
+            let sq = repairSquares[activeSquareIndex];
+            if (mouseX >= sq.x && mouseX <= sq.x + sq.size && mouseY >= sq.y && mouseY <= sq.y + sq.size) {
+                repairScore++;
+                let scoreEl = document.getElementById('repair-score');
+                if (scoreEl) scoreEl.innerText = repairScore;
+                pickRandomSquare();
+            }
+        });
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            if (gameState === 'idle') {
+                ctx.fillStyle = '#ffcc00';
+                ctx.font = '16px monospace';
+                ctx.textAlign = 'center';
+                ctx.fillText('BONE FRACTURE REPAIR MODULE - STANDBY', canvas.width / 2, canvas.height / 2 - 10);
+                ctx.fillStyle = '#888';
+                ctx.font = '12px monospace';
+                ctx.fillText('Click start above to begin tissue mending.', canvas.width / 2, canvas.height / 2 + 15);
+            } else if (gameState === 'playing') {
+                ctx.fillStyle = '#ffcc00';
+                ctx.font = '14px monospace';
+                ctx.textAlign = 'center';
+                ctx.fillText('MEND THE FRACTURED TISSUE', canvas.width / 2, 30);
+
+                for (let i = 0; i < repairSquares.length; i++) {
+                    let sq = repairSquares[i];
+                    ctx.fillStyle = (i === activeSquareIndex) ? '#ffcc00' : '#11131c';
+                    ctx.strokeStyle = '#444';
+                    ctx.lineWidth = 3;
+                    ctx.fillRect(sq.x, sq.y, sq.size, sq.size);
+                    ctx.strokeRect(sq.x, sq.y, sq.size, sq.size);
+
+                    if (i === activeSquareIndex) {
+                        ctx.fillStyle = '#000';
+                        ctx.font = 'bold 12px monospace';
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'middle';
+                        ctx.fillText('BOND', sq.x + sq.size / 2, sq.y + sq.size / 2);
+                    }
+                }
+            } else if (gameState === 'win') {
+                ctx.fillStyle = '#141622';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = '#39ff14';
+                ctx.font = 'bold 20px monospace';
+                ctx.textAlign = 'center';
+                ctx.fillText('VICTORY REPORT', canvas.width / 2, canvas.height / 2 - 30);
+
+                ctx.fillStyle = '#ffffff';
+                ctx.font = '14px monospace';
+                ctx.fillText(`Successful Squares Bonded: ${repairScore}`, canvas.width / 2, canvas.height / 2 + 5);
+                ctx.fillText(`Status: Bone Mended Successfully`, canvas.width / 2, canvas.height / 2 + 30);
+            } else if (gameState === 'retryWait') {
+                ctx.fillStyle = '#141622';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = '#ffcc00';
+                ctx.font = 'bold 20px monospace';
+                ctx.textAlign = 'center';
+                ctx.fillText('ROUND FAILED', canvas.width / 2, canvas.height / 2 - 30);
+
+                ctx.fillStyle = '#ffffff';
+                ctx.font = '14px monospace';
+                ctx.fillText(`Score Achieved: ${repairScore} (Needed > 8)`, canvas.width / 2, canvas.height / 2 + 5);
+                ctx.fillStyle = '#ff3366';
+                ctx.fillText(`Press SPACEBAR to Retry`, canvas.width / 2, canvas.height / 2 + 35);
+            } else if (gameState === 'gameOver') {
+                ctx.fillStyle = '#141622';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = '#ff3366';
+                ctx.font = 'bold 22px monospace';
+                ctx.textAlign = 'center';
+                ctx.fillText('GAME OVER', canvas.width / 2, canvas.height / 2 - 15);
+
+                ctx.fillStyle = '#888';
+                ctx.font = '12px monospace';
+                ctx.fillText('All attempts exhausted. System locked.', canvas.width / 2, canvas.height / 2 + 15);
+            }
+        }
+
+        function loop() {
+            draw();
+            requestAnimationFrame(loop);
+        }
+        loop();
+    </script>
+</body>
+</html>
