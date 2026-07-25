@@ -63,19 +63,17 @@
 <body>
 
     <h2>Grid Module: Physical Trauma & Emergency Repairs</h2>
-    <div class="instructions">
-        <strong>TRAUMA ALERT:</strong> External blunt force has fractured the ribcage!<br>
-        Veins are ruptured and bleeding resources. Dispatch <strong>Worker-Golems</strong> to cauterize and repair the damaged grid coordinates.
+    <div class="instructions" id="instruction-text">
+        <strong>SYSTEM STANDBY:</strong> Grid offline. Click <strong>Dispatch Repair Golem</strong> to initialize grid activity and engage repair protocols.
     </div>
 
-    <div class="stats-panel">
+    <div class="stats-panel" id="stats-panel">
         <div>ATP Reserves: <strong id="atp-display" style="color:#ffcc00; font-size: 1.2em;">100</strong></div>
         <div>Active Leaks: <strong id="leaks-display" style="color:#ff3366;">0</strong></div>
         <div>Available Golems: <strong id="golems-display" style="color:#00f0ff;">3</strong></div>
     </div>
 
-    <div class="controls">
-        <button onclick="triggerTrauma()" style="background: #8b0000; border-color: #ff3366; font-weight: bold;">Simulate Mace Impact (Trauma)</button>
+    <div class="controls" id="controls-panel">
         <button onclick="dispatchWorker()">Dispatch Repair Golem</button>
     </div>
 
@@ -100,12 +98,45 @@
         }
 
         // Game State
+        let gameStarted = false;
         let atp = 100;
         let availableGolems = 3;
         let activeWorkers = [];
         let leakParticles = [];
 
+        // Minigame State ('grid' or 'pong')
+        let currentMode = 'grid';
+        let pongAttempts = 3;
+        let pongState = 'ready'; // 'ready', 'playing', 'won', 'lost'
+
+        // Paddle & Ball objects for Pong Repair Minigame
+        let paddle = {
+            x: 260,
+            y: 50, // One row down from the top (Row 1: 40px to 80px)
+            width: 80,
+            height: 12,
+            dx: 6
+        };
+
+        let ball = {
+            x: 300,
+            y: 80,
+            radius: 8,
+            vx: 3,
+            vy: 4
+        };
+
+        let goal = {
+            x: 288, // Centered at 300 with width 24 (60% bigger than 15)
+            y: 390,
+            width: 24,
+            height: 10
+        };
+
+        let keys = {};
+
         function updateDisplays() {
+            if (currentMode !== 'grid' || !gameStarted) return;
             let damagedCount = 0;
             for(let r=0; r<ROWS; r++) {
                 for(let c=0; c<COLS; c++) {
@@ -118,7 +149,7 @@
         }
 
         function triggerTrauma() {
-            // Smash a random section of the vein highway
+            if (currentMode !== 'grid') return;
             let targetCol = Math.floor(Math.random() * (COLS - 6)) + 3;
             for (let c = targetCol; c < targetCol + 3; c++) {
                 if (grid[veinRow][c].type === 'vein') {
@@ -129,136 +160,325 @@
         }
 
         function dispatchWorker() {
-            if (availableGolems > 0) {
-                // Find a damaged tile to fix
-                let targetTile = null;
-                for (let r = 0; r < ROWS; r++) {
-                    for (let c = 0; c < COLS; c++) {
-                        if (grid[r][c].damaged) {
-                            targetTile = { r: r, c: c };
-                            break;
-                        }
-                    }
-                    if (targetTile) break;
-                }
+            if (!gameStarted) {
+                gameStarted = true;
+                triggerTrauma();
+                document.getElementById('instruction-text').innerHTML = `
+                    <strong>TRAUMA ALERT:</strong> External blunt force has fractured the ribcage!<br>
+                    Veins are ruptured and bleeding resources. Dispatch <strong>Worker-Golems</strong> to cauterize and repair the damaged grid coordinates.
+                `;
+            }
 
-                if (targetTile) {
-                    availableGolems--;
-                    activeWorkers.push({
-                        x: 300, // Spawn from central core
-                        y: 200,
-                        targetR: targetTile.r,
-                        targetC: targetTile.c,
-                        state: 'MOVING'
-                    });
+            if (availableGolems > 0) {
+                availableGolems--;
+                startPongMinigame();
+            }
+            updateDisplays();
+        }
+
+        function startPongMinigame() {
+            currentMode = 'pong';
+            pongAttempts = 3;
+            resetPongBall();
+            pongState = 'ready';
+
+            document.getElementById('instruction-text').innerHTML = `
+                <strong>REPAIR PROTOCOL ACTIVE:</strong> Use <strong>LEFT / RIGHT ARROWS</strong> to control the repair paddle. Hit the ball down into the bottom goal/hole to seal the trauma! Avoid letting the ball hit the top wall behind your paddle. <span id="pong-att" style="color:#ffcc00;">Attempts left: 3</span>
+            `;
+            document.getElementById('stats-panel').innerHTML = `
+                <div>Minigame Mode: <strong style="color:#00f0ff; font-size: 1.2em;">REPAIR PONG</strong></div>
+                <div>Attempts Left: <strong id="sk-att" style="color:#ffcc00; font-size: 1.2em;">3</strong></div>
+            `;
+            document.getElementById('controls-panel').style.display = 'none';
+        }
+
+        function resetPongBall() {
+            ball.x = paddle.x + paddle.width / 2;
+            ball.y = paddle.y + paddle.height + 15;
+            ball.vx = (Math.random() - 0.5) * 5;
+            ball.vy = 4;
+        }
+
+        window.addEventListener('keydown', (e) => {
+            keys[e.code] = true;
+            if (currentMode === 'pong') {
+                if (e.code === 'Space') {
+                    e.preventDefault();
+                    if (pongState === 'ready') {
+                        pongState = 'playing';
+                    } else if (pongState === 'won') {
+                        resetToOffline();
+                    } else if (pongState === 'lost') {
+                        returnToGrid();
+                    }
                 }
             }
+        });
+
+        window.addEventListener('keyup', (e) => {
+            keys[e.code] = false;
+        });
+
+        function resetToOffline() {
+            gameStarted = false;
+            currentMode = 'grid';
+            atp = 100;
+            availableGolems = 3;
+            activeWorkers = [];
+            leakParticles = [];
+
+            document.getElementById('controls-panel').style.display = 'flex';
+            document.getElementById('instruction-text').innerHTML = `
+                <strong>SYSTEM STANDBY:</strong> Grid offline. Click <strong>Dispatch Repair Golem</strong> to initialize grid activity and engage repair protocols.
+            `;
+            document.getElementById('stats-panel').innerHTML = `
+                <div>ATP Reserves: <strong id="atp-display" style="color:#ffcc00; font-size: 1.2em;">100</strong></div>
+                <div>Active Leaks: <strong id="leaks-display" style="color:#ff3366;">0</strong></div>
+                <div>Available Golems: <strong id="golems-display" style="color:#00f0ff;">3</strong></div>
+            `;
+        }
+
+        function returnToGrid() {
+            currentMode = 'grid';
+            document.getElementById('controls-panel').style.display = 'flex';
+            document.getElementById('instruction-text').innerHTML = `
+                <strong>TRAUMA ALERT:</strong> External blunt force has fractured the ribcage!<br>
+                Veins are ruptured and bleeding resources. Dispatch <strong>Worker-Golems</strong> to cauterize and repair the damaged grid coordinates.
+            `;
+            document.getElementById('stats-panel').innerHTML = `
+                <div>ATP Reserves: <strong id="atp-display" style="color:#ffcc00; font-size: 1.2em;">100</strong></div>
+                <div>Active Leaks: <strong id="leaks-display" style="color:#ff3366;">0</strong></div>
+                <div>Available Golems: <strong id="golems-display" style="color:#00f0ff;">3</strong></div>
+            `;
             updateDisplays();
         }
 
         // --- CORE GAME LOOP (60 FPS) ---
         function update() {
-            // Check for damaged tiles and hemorrhage ATP
-            for (let r = 0; r < ROWS; r++) {
-                for (let c = 0; c < COLS; c++) {
-                    if (grid[r][c].damaged) {
-                        atp = Math.max(0, atp - 0.03); // Resource leakage penalty
+            if (!gameStarted) return;
 
-                        // Spawn internal bleeding hemorrhage particles
-                        if (Math.random() < 0.3) {
-                            leakParticles.push({
-                                x: c * TILE_SIZE + TILE_SIZE/2 + (Math.random() - 0.5) * 20,
-                                y: r * TILE_SIZE + TILE_SIZE/2 + (Math.random() - 0.5) * 20,
-                                vy: 0.5 + Math.random(),
-                                alpha: 1.0
-                            });
+            if (currentMode === 'grid') {
+                for (let r = 0; r < ROWS; r++) {
+                    for (let c = 0; c < COLS; c++) {
+                        if (grid[r][c].damaged) {
+                            atp = Math.max(0, atp - 0.03);
+
+                            if (Math.random() < 0.3) {
+                                leakParticles.push({
+                                    x: c * TILE_SIZE + TILE_SIZE/2 + (Math.random() - 0.5) * 20,
+                                    y: r * TILE_SIZE + TILE_SIZE/2 + (Math.random() - 0.5) * 20,
+                                    vy: 0.5 + Math.random(),
+                                    alpha: 1.0
+                                });
+                            }
+                        }
+                    }
+                }
+
+                for (let i = leakParticles.length - 1; i >= 0; i--) {
+                    let p = leakParticles[i];
+                    p.y += p.vy;
+                    p.alpha -= 0.02;
+                    if (p.alpha <= 0) leakParticles.splice(i, 1);
+                }
+
+                for (let i = activeWorkers.length - 1; i >= 0; i--) {
+                    let w = activeWorkers[i];
+                    let targetX = w.targetC * TILE_SIZE + TILE_SIZE/2;
+                    let targetY = w.targetR * TILE_SIZE + TILE_SIZE/2;
+
+                    let dx = targetX - w.x;
+                    let dy = targetY - w.y;
+                    let dist = Math.hypot(dx, dy);
+
+                    if (dist < 3) {
+                        grid[w.targetR][w.targetC].damaged = false;
+                        availableGolems++;
+                        activeWorkers.splice(i, 1);
+                    } else {
+                        w.x += (dx / dist) * 2.5;
+                        w.y += (dy / dist) * 2.5;
+                    }
+                }
+                updateDisplays();
+            } else if (currentMode === 'pong') {
+                // Handle Paddle movement
+                if (keys['ArrowLeft']) {
+                    paddle.x = Math.max(10, paddle.x - paddle.dx);
+                }
+                if (keys['ArrowRight']) {
+                    paddle.x = Math.min(canvas.width - paddle.width - 10, paddle.x + paddle.dx);
+                }
+
+                if (pongState === 'ready') {
+                    ball.x = paddle.x + paddle.width / 2;
+                } else if (pongState === 'playing') {
+                    ball.x += ball.vx;
+                    ball.y += ball.vy;
+
+                    // Wall bounces (Left / Right)
+                    if (ball.x - ball.radius <= 0 || ball.x + ball.radius >= canvas.width) {
+                        ball.vx = -ball.vx;
+                    }
+
+                    // Check top wall (Behind paddle) -> Game Over / Lose Attempt
+                    if (ball.y - ball.radius <= 0) {
+                        pongAttempts--;
+                        document.getElementById('sk-att').innerText = pongAttempts;
+                        if (pongAttempts <= 0) {
+                            pongState = 'lost';
+                        } else {
+                            resetPongBall();
+                            pongState = 'ready';
+                        }
+                    }
+
+                    // Paddle collision (Top paddle)
+                    if (
+                        ball.y + ball.radius >= paddle.y &&
+                        ball.y - ball.radius <= paddle.y + paddle.height &&
+                        ball.x >= paddle.x &&
+                        ball.x <= paddle.x + paddle.width
+                    ) {
+                        ball.vy = Math.abs(ball.vy); // Bounce downwards
+                        let hitOffset = ball.x - (paddle.x + paddle.width / 2);
+                        ball.vx = hitOffset * 0.15;
+                    }
+
+                    // Bottom collision (Goal or Wall)
+                    if (ball.y + ball.radius >= canvas.height) {
+                        // Check if it hit the goal/hole in the bottom middle
+                        if (ball.x >= goal.x && ball.x <= goal.x + goal.width) {
+                            pongState = 'won';
+                        } else {
+                            // Bottom wall behind/around goal bounces ball back up to player
+                            ball.vy = -Math.abs(ball.vy);
                         }
                     }
                 }
             }
-
-            // Update leaking blood particles
-            for (let i = leakParticles.length - 1; i >= 0; i--) {
-                let p = leakParticles[i];
-                p.y += p.vy;
-                p.alpha -= 0.02;
-                if (p.alpha <= 0) leakParticles.splice(i, 1);
-            }
-
-            // Update Worker-Golems
-            for (let i = activeWorkers.length - 1; i >= 0; i--) {
-                let w = activeWorkers[i];
-                let targetX = w.targetC * TILE_SIZE + TILE_SIZE/2;
-                let targetY = w.targetR * TILE_SIZE + TILE_SIZE/2;
-
-                let dx = targetX - w.x;
-                let dy = targetY - w.y;
-                let dist = Math.hypot(dx, dy);
-
-                if (dist < 3) {
-                    // Arrived at damage site, repair it!
-                    grid[w.targetR][w.targetC].damaged = false;
-                    availableGolems++;
-                    activeWorkers.splice(i, 1);
-                } else {
-                    w.x += (dx / dist) * 2.5;
-                    w.y += (dy / dist) * 2.5;
-                }
-            }
-
-            updateDisplays();
         }
 
         // --- RENDERING ---
         function draw() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            // Draw Grid & Veins
-            for (let r = 0; r < ROWS; r++) {
-                for (let c = 0; c < COLS; c++) {
-                    const tile = grid[r][c];
-                    const x = c * TILE_SIZE;
-                    const y = r * TILE_SIZE;
+            if (!gameStarted) {
+                ctx.fillStyle = '#141622';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = '#ff3366';
+                ctx.font = '14px monospace';
+                ctx.textAlign = 'center';
+                ctx.fillText('[ SYSTEM OFFLINE ]', canvas.width / 2, canvas.height / 2 - 10);
+                ctx.fillStyle = '#777';
+                ctx.font = '12px monospace';
+                ctx.fillText('Press "Dispatch Repair Golem" to initialize grid.', canvas.width / 2, canvas.height / 2 + 15);
+                return;
+            }
 
-                    ctx.strokeStyle = '#222';
-                    ctx.strokeRect(x, y, TILE_SIZE, TILE_SIZE);
+            if (currentMode === 'grid') {
+                for (let r = 0; r < ROWS; r++) {
+                    for (let c = 0; c < COLS; c++) {
+                        const tile = grid[r][c];
+                        const x = c * TILE_SIZE;
+                        const y = r * TILE_SIZE;
 
-                    if (tile.type === 'vein') {
-                        if (tile.damaged) {
-                            // Crushed & Ruptured Vein
-                            ctx.fillStyle = '#4a0d18';
-                            ctx.fillRect(x, y + 5, TILE_SIZE, TILE_SIZE - 10);
-                            ctx.strokeStyle = '#ff3366';
-                            ctx.lineWidth = 2;
-                            ctx.strokeRect(x + 2, y + 2, TILE_SIZE - 4, TILE_SIZE - 4);
-                            ctx.lineWidth = 1;
-                        } else {
-                            // Healthy Vein
-                            ctx.fillStyle = '#611724';
-                            ctx.fillRect(x, y + 8, TILE_SIZE, TILE_SIZE - 16);
+                        ctx.strokeStyle = '#222';
+                        ctx.strokeRect(x, y, TILE_SIZE, TILE_SIZE);
+
+                        if (tile.type === 'vein') {
+                            if (tile.damaged) {
+                                ctx.fillStyle = '#4a0d18';
+                                ctx.fillRect(x, y + 5, TILE_SIZE, TILE_SIZE - 10);
+                                ctx.strokeStyle = '#ff3366';
+                                ctx.lineWidth = 2;
+                                ctx.strokeRect(x + 2, y + 2, TILE_SIZE - 4, TILE_SIZE - 4);
+                                ctx.lineWidth = 1;
+                            } else {
+                                ctx.fillStyle = '#611724';
+                                ctx.fillRect(x, y + 8, TILE_SIZE, TILE_SIZE - 16);
+                            }
                         }
                     }
                 }
-            }
 
-            // Draw Hemorrhage Particles (Internal bleeding)
-            for (let p of leakParticles) {
-                ctx.fillStyle = 'rgba(255, 51, 102,' + p.alpha + ')';
-                ctx.beginPath();
-                ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
-                ctx.fill();
-            }
+                for (let p of leakParticles) {
+                    ctx.fillStyle = 'rgba(255, 51, 102,' + p.alpha + ')';
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
+                    ctx.fill();
+                }
 
-            // Draw Worker-Golems
-            for (let w of activeWorkers) {
-                ctx.fillStyle = '#00f0ff';
+                for (let w of activeWorkers) {
+                    ctx.fillStyle = '#00f0ff';
+                    ctx.beginPath();
+                    ctx.arc(w.x, w.y, 6, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.strokeStyle = '#ffffff';
+                    ctx.stroke();
+                }
+            } else if (currentMode === 'pong') {
+                // Background arena styling
+                ctx.fillStyle = '#141622';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                // Draw Top Warning Line (Behind paddle wall)
+                ctx.strokeStyle = '#ff3366';
+                ctx.lineWidth = 2;
                 ctx.beginPath();
-                ctx.arc(w.x, w.y, 6, 0, Math.PI * 2);
+                ctx.moveTo(0, 2);
+                ctx.lineTo(canvas.width, 2);
+                ctx.stroke();
+
+                // Draw Goal/Hole at the bottom middle (Golem portal style - width 24)
+                ctx.fillStyle = '#39ff14';
+                ctx.shadowBlur = 15;
+                ctx.shadowColor = '#39ff14';
+                ctx.beginPath();
+                ctx.ellipse(goal.x + goal.width / 2, goal.y, goal.width / 2, 4, 0, 0, Math.PI * 2);
                 ctx.fill();
-                // Repair tool glow
+                ctx.shadowBlur = 0;
                 ctx.strokeStyle = '#ffffff';
                 ctx.stroke();
+
+                // Draw Pong Paddle (One row down from top)
+                ctx.fillStyle = '#00f0ff';
+                ctx.shadowBlur = 10;
+                ctx.shadowColor = '#00f0ff';
+                ctx.fillRect(paddle.x, paddle.y, paddle.width, paddle.height);
+                ctx.shadowBlur = 0;
+
+                // Draw Ball
+                ctx.fillStyle = '#ffffff';
+                ctx.beginPath();
+                ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
+                ctx.fill();
+
+                if (pongState === 'ready') {
+                    ctx.fillStyle = '#ffcc00';
+                    ctx.font = '14px monospace';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('Press [SPACEBAR] to Serve Repair Ball', canvas.width / 2, canvas.height / 2);
+                }
+
+                if (pongState === 'won') {
+                    drawOverlay('TRAUMA REPAIRED!', '#39ff14', 'Press [SPACEBAR] to shut down system');
+                } else if (pongState === 'lost') {
+                    drawOverlay('SYSTEM FAILURE: RUPTURE UNCONTAINED', '#ff3366', 'Press [SPACEBAR] to return to grid');
+                }
             }
+        }
+
+        function drawOverlay(mainText, color, subText) {
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = color;
+            ctx.font = 'bold 22px monospace';
+            ctx.textAlign = 'center';
+            ctx.fillText(mainText, canvas.width / 2, canvas.height / 2 - 15);
+            ctx.fillStyle = '#fff';
+            ctx.font = '14px monospace';
+            ctx.fillText(subText, canvas.width / 2, canvas.height / 2 + 25);
         }
 
         function loop() {
