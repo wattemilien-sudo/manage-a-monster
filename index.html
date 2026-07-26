@@ -252,44 +252,44 @@
             </div>
         </div>
 
-        <!-- Modules Section (7 Total as requested) -->
+        <!-- Modules Section (Linked to actual files) -->
         <div>
-            <div class="modules-section-label">All modules (there are actually 7 so include them)</div>
+            <div class="modules-section-label">All modules</div>
             <div class="modules-grid">
                 
-                <a href="bone-repair.html" class="module-btn">
+                <a href="Bone%20fracture.html" class="module-btn">
                     <div class="module-icon">🦴</div>
-                    <div>1. Bone Repair</div>
+                    <div>1. Bone Fracture</div>
                 </a>
                 
-                <a href="pattern-shift.html" class="module-btn">
+                <a href="Mental%20health%20block%20buster.html" class="module-btn">
                     <div class="module-icon">🧩</div>
-                    <div>2. Pattern Shift</div>
+                    <div>2. Mental Health<br>Block Buster</div>
                 </a>
                 
-                <a href="happy-thoughts.html" class="module-btn">
+                <a href="Happy%20thoughts%20module.html" class="module-btn">
                     <div class="module-icon">✨</div>
                     <div>3. Happy Thoughts</div>
                 </a>
                 
-                <a href="meditation.html" class="module-btn">
+                <a href="Meditation.html" class="module-btn">
                     <div class="module-icon">🧘</div>
                     <div>4. Meditation</div>
                 </a>
                 
-                <a href="toxin-purge.html" class="module-btn">
+                <a href="poison.html" class="module-btn">
                     <div class="module-icon">🧪</div>
-                    <div>5. Toxin Purge<br><small>(Poison Protocol)</small></div>
+                    <div>5. Poison Protocol</div>
                 </a>
                 
-                <a href="cardiac-rhythm.html" class="module-btn">
-                    <div class="module-icon">❤️</div>
-                    <div>6. Cardiac Rhythm</div>
+                <a href="Imunesystem.html" class="module-btn">
+                    <div class="module-icon">🛡️</div>
+                    <div>6. Immune System</div>
                 </a>
                 
-                <a href="neural-sync.html" class="module-btn">
-                    <div class="module-icon">⚡</div>
-                    <div>7. Neural Sync</div>
+                <a href="Trauma.html" class="module-btn">
+                    <div class="module-icon">❤️‍🩹</div>
+                    <div>7. Trauma Sync</div>
                 </a>
 
             </div>
@@ -334,26 +334,58 @@
         function runDiagnostic() {
             // 1. Reveal Charts Section
             document.getElementById('charts-section').style.display = 'block';
-
-            // 2. Simulate a sudden health drop (e.g. poison arrow)
-            healthData.physical = 35; // Drops to critical
-            healthData.mental = 60;   // Drops due to stress
             
-            // Save state so if player clicks module, it remembers
-            localStorage.setItem('health_physical', healthData.physical);
-            localStorage.setItem('health_mental', healthData.mental);
-            
-            updateBars();
+            // 2. Evaluate current health instead of changing it
+            let outputBox = document.getElementById('diagnostic-output');
 
-            // 3. Output two-sentence summary
-            document.getElementById('diagnostic-output').innerHTML = 
-                "<span style='color:#ff3366'><strong>ALERT:</strong> Foreign toxins detected in bloodstream mimicking projectile trauma (Poison Arrow).</span><br>" +
-                "<span style='color:#ffcc00'>Immediate physical degradation recorded. Advise initiating 'Toxin Purge' module immediately.</span>";
+            if (healthData.physical < 50) {
+                // If physical health is actually low
+                outputBox.innerHTML = 
+                    "<span style='color:#ff3366'><strong>ALERT:</strong> Foreign toxins or trauma detected (Physical Health Critical).</span><br>" +
+                    "<span style='color:#ffcc00'>Immediate physical degradation recorded. Advise initiating module immediately.</span>";
+                
+                drawTrendChart('chart-physical', [100, 95, 80, healthData.physical + 10, healthData.physical]);
+                drawTrendChart('chart-mental', [100, 90, 85, healthData.mental + 5, healthData.mental]);
 
-            // 4. Draw trend line charts (Simulating the downward spike)
-            drawTrendChart('chart-mental', [90, 85, 60, 45, 60]); // Dips and slightly recovers
-            drawTrendChart('chart-physical', [100, 95, 80, 25, 35]); // Sharp dip representing arrow hit
+            } else if (healthData.mental < 50) {
+                // If mental health is actually low
+                outputBox.innerHTML = 
+                    "<span style='color:#ff3366'><strong>ALERT:</strong> Severe cognitive stress detected.</span><br>" +
+                    "<span style='color:#ffcc00'>Advise initiating cognitive maintenance module immediately.</span>";
+                
+                drawTrendChart('chart-physical', [100, 95, 95, healthData.physical, healthData.physical]);
+                drawTrendChart('chart-mental', [100, 90, 70, healthData.mental + 10, healthData.mental]);
+
+            } else {
+                // If everything is fine
+                outputBox.innerHTML = 
+                    "<span style='color:#39ff14'><strong>SYSTEM NORMAL:</strong> All bio-metrics operating within acceptable parameters. No anomalies detected.</span>";
+                
+                // Draw steady charts
+                drawTrendChart('chart-physical', [100, 98, 100, 99, healthData.physical]);
+                drawTrendChart('chart-mental', [100, 99, 97, 100, healthData.mental]);
+            }
         }
+
+        // -----------------------------------------------------------
+        // FOR TESTING: Simulate taking damage
+        // -----------------------------------------------------------
+        window.addEventListener('keydown', (e) => {
+            if (e.key.toLowerCase() === 'p') {
+                healthData.physical = 35; // Drop health
+                localStorage.setItem('health_physical', healthData.physical);
+                updateBars();
+                alert("Simulated Physical Attack! Press 'Run diagnostic' to see the alert.");
+            }
+            if (e.key.toLowerCase() === 'h') {
+                healthData.physical = 100; // Heal
+                healthData.mental = 100;
+                localStorage.setItem('health_physical', 100);
+                localStorage.setItem('health_mental', 100);
+                updateBars();
+                alert("Health restored to 100%.");
+            }
+        });
 
         function drawTrendChart(canvasId, dataPoints) {
             const canvas = document.getElementById(canvasId);
