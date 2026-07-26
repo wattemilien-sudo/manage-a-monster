@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Master Health Dashboard</title>
+    <style>
+        body {
+            background-color: #0d0e15;
+            color: #e0e6ed;
+            font-family: monospace;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .dashboard-container {
+            width: 100%;
+            max-width: 900px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        /* --- Health Bars Section --- */
+        .health-block {
+            margin-bottom: 15px;
+        }
+
+        .label {
+            border: 1px solid #444;
+            display: inline-block;
+            padding: 5px 15px;
+            margin-bottom: 5px;
+            font-weight: bold;
+            background: #141622;
+        }
+
+        .bar-container {
+            border: 2px solid #333;
+            background: #1a1c29;
+            height: 35px;
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .bar-container .min, .bar-container .max {
+            position: absolute;
+            top: -20px;
+            font-size: 12px;
+            color: #888;
+        }
+        
+        .bar-container .min { left: 0; }
+        .bar-container .max { right: 0; }
+
+        .bar-fill {
+            height: 100%;
+            background: #39ff14;
+            width: 100%;
+            transition: width 1s ease-in-out, background-color 1s ease;
+        }
+
+        /* --- Middle Layout (Split Section) --- */
+        .middle-layout {
+            display: flex;
+            gap: 20px;
+        }
+        
+        .left-col, .right-col {
+            flex: 1;
+        }
+
+        .right-col {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        /* --- Diagnostic Tools --- */
+        .diagnostic-btn {
+            background: #141622;
+            color: #e0e6ed;
+            border: 1px solid #444;
+            padding: 10px;
+            text-align: left;
+            font-family: inherit;
+            font-size: 14px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .diagnostic-btn:hover {
+            border-color: #00f0ff;
+            color: #00f0ff;
+            background: #232635;
+        }
+
+        .diagnostic-box {
+            border: 1px solid #444;
+            background: #1a1c29;
+            padding: 15px;
+            min-height: 80px;
+            font-size: 14px;
+            line-height: 1.5;
+            color: #888;
+        }
+
+        /* --- Charts Section --- */
+        .charts-container {
+            display: none; /* Hidden until diagnostic runs */
+            border: 1px solid #444;
+            padding: 15px;
+            background: #1a1c29;
+        }
+
+        .charts-header {
+            margin-top: 0;
+            margin-bottom: 15px;
+            font-size: 14px;
+            border-bottom: 1px solid #333;
+            padding-bottom: 5px;
+        }
+
+        .charts-flex {
+            display: flex;
+            gap: 20px;
+        }
+
+        .chart-box {
+            flex: 1;
+            text-align: center;
+        }
+        
+        .chart-box h4 {
+            margin: 0 0 10px 0;
+            color: #888;
+        }
+
+        canvas.chart {
+            background: #141622;
+            border: 1px solid #333;
+            width: 100%;
+            height: 150px;
+        }
+
+        /* --- Modules Grid --- */
+        .modules-section-label {
+            border: 1px solid #444;
+            display: inline-block;
+            padding: 5px 15px;
+            background: #141622;
+            margin-bottom: 10px;
+        }
+
+        .modules-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+        }
+
+        .module-btn {
+            aspect-ratio: 1 / 1;
+            background: #1a1c29;
+            border: 2px solid #333;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #888;
+            transition: 0.2s;
+            text-decoration: none;
+            font-family: monospace;
+            padding: 10px;
+            text-align: center;
+        }
+
+        .module-btn:hover {
+            border-color: #00f0ff;
+            background: #232635;
+            color: #00f0ff;
+            box-shadow: 0 0 15px rgba(0, 240, 255, 0.2);
+        }
+
+        .module-icon {
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="dashboard-container">
+        
+        <!-- Overall Health -->
+        <div class="health-block">
+            <div class="label">Overall health</div>
+            <div class="bar-container">
+                <span class="min">0</span><span class="max">100</span>
+                <div class="bar-fill" id="bar-overall"></div>
+            </div>
+        </div>
+
+        <!-- Middle Layout -->
+        <div class="middle-layout">
+            
+            <!-- Left Column: Specific Health -->
+            <div class="left-col">
+                <div class="health-block">
+                    <div class="label">Physical Health</div>
+                    <div class="bar-container">
+                        <span class="min">0</span><span class="max">100</span>
+                        <div class="bar-fill" id="bar-physical"></div>
+                    </div>
+                </div>
+
+                <div class="health-block">
+                    <div class="label">Mental Health</div>
+                    <div class="bar-container">
+                        <span class="min">0</span><span class="max">100</span>
+                        <div class="bar-fill" id="bar-mental"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column: Diagnostics -->
+            <div class="right-col">
+                <button class="diagnostic-btn" onclick="runDiagnostic()">Run diagnostic</button>
+                <div class="diagnostic-box" id="diagnostic-output">
+                    System on standby. No active alerts.
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Charts Section (Revealed on Diagnostic Run) -->
+        <div class="charts-container" id="charts-section">
+            <div class="charts-header">Show when click run diagnostic (last 10 min)</div>
+            <div class="charts-flex">
+                <div class="chart-box">
+                    <h4>Mental Health</h4>
+                    <canvas id="chart-mental" class="chart"></canvas>
+                </div>
+                <div class="chart-box">
+                    <h4>Physical Health</h4>
+                    <canvas id="chart-physical" class="chart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modules Section (7 Total as requested) -->
+        <div>
+            <div class="modules-section-label">All modules (there are actually 7 so include them)</div>
+            <div class="modules-grid">
+                
+                <a href="bone-repair.html" class="module-btn">
+                    <div class="module-icon">🦴</div>
+                    <div>1. Bone Repair</div>
+                </a>
+                
+                <a href="pattern-shift.html" class="module-btn">
+                    <div class="module-icon">🧩</div>
+                    <div>2. Pattern Shift</div>
+                </a>
+                
+                <a href="happy-thoughts.html" class="module-btn">
+                    <div class="module-icon">✨</div>
+                    <div>3. Happy Thoughts</div>
+                </a>
+                
+                <a href="meditation.html" class="module-btn">
+                    <div class="module-icon">🧘</div>
+                    <div>4. Meditation</div>
+                </a>
+                
+                <a href="toxin-purge.html" class="module-btn">
+                    <div class="module-icon">🧪</div>
+                    <div>5. Toxin Purge<br><small>(Poison Protocol)</small></div>
+                </a>
+                
+                <a href="cardiac-rhythm.html" class="module-btn">
+                    <div class="module-icon">❤️</div>
+                    <div>6. Cardiac Rhythm</div>
+                </a>
+                
+                <a href="neural-sync.html" class="module-btn">
+                    <div class="module-icon">⚡</div>
+                    <div>7. Neural Sync</div>
+                </a>
+
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // Initialize health variables (Pulling from localStorage if available)
+        let healthData = {
+            physical: parseInt(localStorage.getItem('health_physical')) || 100,
+            mental: parseInt(localStorage.getItem('health_mental')) || 100
+        };
+
+        function updateBars() {
+            // Calculate overall health as average of physical and mental
+            let overall = (healthData.physical + healthData.mental) / 2;
+
+            const bars = {
+                'bar-overall': overall,
+                'bar-physical': healthData.physical,
+                'bar-mental': healthData.mental
+            };
+
+            for (const [id, value] of Object.entries(bars)) {
+                let el = document.getElementById(id);
+                el.style.width = `${value}%`;
+                
+                // Change color based on health status
+                if (value > 60) el.style.backgroundColor = '#39ff14'; // Green
+                else if (value > 30) el.style.backgroundColor = '#ffcc00'; // Yellow
+                else el.style.backgroundColor = '#ff3366'; // Red
+            }
+        }
+
+        // Run this on page load to set initial UI
+        updateBars();
+
+        // -----------------------------------------------------------
+        // Diagnostic Logic
+        // -----------------------------------------------------------
+        function runDiagnostic() {
+            // 1. Reveal Charts Section
+            document.getElementById('charts-section').style.display = 'block';
+
+            // 2. Simulate a sudden health drop (e.g. poison arrow)
+            healthData.physical = 35; // Drops to critical
+            healthData.mental = 60;   // Drops due to stress
+            
+            // Save state so if player clicks module, it remembers
+            localStorage.setItem('health_physical', healthData.physical);
+            localStorage.setItem('health_mental', healthData.mental);
+            
+            updateBars();
+
+            // 3. Output two-sentence summary
+            document.getElementById('diagnostic-output').innerHTML = 
+                "<span style='color:#ff3366'><strong>ALERT:</strong> Foreign toxins detected in bloodstream mimicking projectile trauma (Poison Arrow).</span><br>" +
+                "<span style='color:#ffcc00'>Immediate physical degradation recorded. Advise initiating 'Toxin Purge' module immediately.</span>";
+
+            // 4. Draw trend line charts (Simulating the downward spike)
+            drawTrendChart('chart-mental', [90, 85, 60, 45, 60]); // Dips and slightly recovers
+            drawTrendChart('chart-physical', [100, 95, 80, 25, 35]); // Sharp dip representing arrow hit
+        }
+
+        function drawTrendChart(canvasId, dataPoints) {
+            const canvas = document.getElementById(canvasId);
+            const ctx = canvas.getContext('2d');
+            
+            // Set canvas resolution strictly
+            canvas.width = canvas.offsetWidth;
+            canvas.height = canvas.offsetHeight;
+            
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Draw grid lines (horizontal)
+            ctx.strokeStyle = '#333';
+            ctx.lineWidth = 1;
+            for(let i = 0; i <= 5; i++) {
+                let y = (canvas.height / 5) * i;
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(canvas.width, y);
+                ctx.stroke();
+            }
+
+            // Draw the trend line
+            ctx.strokeStyle = '#00f0ff'; // Cyan sci-fi line
+            ctx.lineWidth = 3;
+            ctx.lineJoin = 'round';
+            ctx.beginPath();
+            
+            let xStep = canvas.width / (dataPoints.length - 1);
+            
+            for(let i = 0; i < dataPoints.length; i++) {
+                let x = i * xStep;
+                // Invert Y because canvas draws top-down (0 is at top)
+                let y = canvas.height - ((dataPoints[i] / 100) * canvas.height); 
+                
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+        }
+    </script>
+</body>
+</html>
