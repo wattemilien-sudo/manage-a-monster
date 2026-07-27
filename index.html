@@ -1,3 +1,7 @@
+
+
+
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -426,6 +430,21 @@
             }
             ctx.stroke();
         }
+		// -----------------------------------------------------------
+        // Auto-Refresh Health when returning from a module
+        // -----------------------------------------------------------
+        window.addEventListener('pageshow', function() {
+            // Re-fetch the health data from the modules
+            healthData.physical = parseInt(localStorage.getItem('health_physical')) || 100;
+            healthData.mental = parseInt(localStorage.getItem('health_mental')) || 100;
+            
+            // Update the bars visually
+            updateBars();
+            
+            // Reset the diagnostic screen so it's ready to be run again
+            document.getElementById('charts-section').style.display = 'none';
+            document.getElementById('diagnostic-output').innerHTML = "System on standby. No active alerts.";
+        });
     </script>
 </body>
 </html>
