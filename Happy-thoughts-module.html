@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -253,7 +254,7 @@
                 }
                 else if (e.key === 'Enter' || e.code === 'Space') {
                     if (currentInput.length > 0) {
-                        checkWord(currentInput);
+                        Wordcheck(currentInput);
                         currentInput = "";
                     }
                 }
@@ -270,6 +271,31 @@
                 if (dist < lowestDistance) {
                     lowestDistance = dist;
                     bestMatch = happyDictionary[i];
+                }
+            }
+
+            // Accept the word if the distance is 2 or less (allowing 1-2 incorrect/missing letters)
+            if (lowestDistance <= 2 && bestMatch && !matchedWords.includes(bestMatch)) {
+                matchedWords.push(bestMatch);
+                spawnParticles(canvas.width / 2, canvas.height / 2 + 30);
+                updateUI();
+                
+                if (matchedWords.length >= targetWordCount) {
+                    gameState = 'win';
+                    
+                    // --- NEW HEALING LOGIC START ---
+                    // 1. Get current mental health (default to 100 if it doesn't exist yet)
+                    let currentMentalHealth = parseInt(localStorage.getItem('health_mental')) || 100;
+                    // 2. Add 35 health points, but don't let it go over 100
+                    let newMentalHealth = Math.min(100, currentMentalHealth + 35);
+                    // 3. Save the new health back to the system
+                    localStorage.setItem('health_mental', newMentalHealth);
+                    // --- NEW HEALING LOGIC END ---
+
+                    updateUI();
+                }
+            }
+        }
                 }
             }
 
