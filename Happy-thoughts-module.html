@@ -260,7 +260,7 @@
             }
         });
 
-        function checkWord(typedWord) {
+       function checkWord(typedWord) {
             let bestMatch = null;
             let lowestDistance = Infinity;
 
@@ -272,6 +272,26 @@
                     bestMatch = happyDictionary[i];
                 }
             }
+
+            // Accept the word if the distance is 2 or less
+            if (lowestDistance <= 2 && bestMatch && !matchedWords.includes(bestMatch)) {
+                matchedWords.push(bestMatch);
+                spawnParticles(canvas.width / 2, canvas.height / 2 + 30);
+                updateUI();
+                
+                if (matchedWords.length >= targetWordCount) {
+                    gameState = 'win';
+                    
+                    // --- NEW HEALING LOGIC START ---
+                    let currentMentalHealth = parseInt(localStorage.getItem('health_mental')) || 100;
+                    let newMentalHealth = Math.min(100, currentMentalHealth + 35);
+                    localStorage.setItem('health_mental', newMentalHealth);
+                    // --- NEW HEALING LOGIC END ---
+
+                    updateUI();
+                }
+            }
+        }
 
             // Accept the word if the distance is 2 or less (allowing 1-2 incorrect/missing letters)
             if (lowestDistance <= 2 && bestMatch && !matchedWords.includes(bestMatch)) {
