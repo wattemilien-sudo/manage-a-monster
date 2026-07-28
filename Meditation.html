@@ -293,10 +293,12 @@
                             let currentMental = parseInt(localStorage.getItem('health_mental')) || 100;
                             localStorage.setItem('health_mental', Math.max(0, currentMental - 25)); // Deal 25 mental damage
                             updateUI();
-                        } else if (goodAbsorbed >= WIN_TARGET) {
-                            gameState = 'win';
-                           let currentMental = parseInt(localStorage.getItem('health_mental')) || 30;
-localStorage.setItem('health_mental', Math.min(100, currentMental + 25));
+                       } else if (goodAbsorbed >= WIN_TARGET) {
+    gameState = 'win';
+    let currentMental = parseInt(localStorage.getItem('health_mental')) || 30;
+    localStorage.setItem('health_mental', Math.min(100, currentMental + 25));
+    updateUI();
+}
                         }
                     }
                 }
