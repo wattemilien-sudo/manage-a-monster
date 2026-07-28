@@ -12,13 +12,35 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            margin-top: 20px;
+            margin-top: 40px;
         }
+        
+        /* --- Return Button (Centered, Cyan outline) --- */
+        .return-btn {
+            background: #141622;
+            color: #00f0ff;
+            border: 1px solid #00f0ff;
+            padding: 10px 20px;
+            text-decoration: none;
+            font-weight: bold;
+            border-radius: 4px;
+            transition: 0.2s;
+            font-family: inherit;
+            margin-bottom: 25px; /* Spaces it out from the title */
+        }
+
+        .return-btn:hover {
+            background: #232635;
+            box-shadow: 0 0 15px rgba(0, 240, 255, 0.4);
+            color: #00f0ff;
+        }
+
         canvas {
             background-color: #1a1c29;
             border: 2px solid #333;
             box-shadow: 0 0 20px rgba(0, 240, 255, 0.2);
         }
+        
         .controls {
             margin-top: 15px;
             display: flex;
@@ -32,6 +54,7 @@
             justify-content: center;
             min-height: 40px;
         }
+        
         button {
             background: #333;
             color: white;
@@ -43,7 +66,9 @@
             font-weight: bold;
             transition: 0.2s;
         }
+        
         button:hover { background: #444; border-color: #00f0ff; color: #00f0ff; }
+        
         .instructions {
             color: #00f0ff;
             max-width: 650px;
@@ -55,7 +80,11 @@
 </head>
 <body>
 
+    <!-- Dashboard Return Button -->
+    <a href="index.html" class="return-btn">Return to Dashboard</a>
+
     <h2>Grid Module: Cognitive Meditation</h2>
+    
     <div class="instructions" id="instruction-text">
         <strong>SYSTEM IDLE:</strong> Awaiting command to initiate meditation protocol.
     </div>
@@ -123,17 +152,17 @@
                 `;
             } else if (gameState === 'win') {
                 document.getElementById('instruction-text').innerHTML = `
-                    <strong style="color:#39ff14;">PROTOCOL SUCCESSFUL:</strong> Cognitive equilibrium achieved. Press <strong>SPACEBAR</strong> to return to menu.
+                    <strong style="color:#39ff14;">PROTOCOL SUCCESSFUL:</strong> Cognitive equilibrium achieved. Press <strong>SPACEBAR</strong> to restart or click Return to Dashboard.
                 `;
                 document.getElementById('controls-panel').innerHTML = `
-                    <div style="color:#39ff14; font-weight:bold;">MIND CLEARED</div>
+                    <div style="color:#39ff14; font-weight:bold;">MIND CLEARED - MENTAL HEALTH RESTORED</div>
                 `;
             } else if (gameState === 'lose') {
                 document.getElementById('instruction-text').innerHTML = `
                     <strong style="color:#ff3366;">PROTOCOL FAILED:</strong> Cognitive overload from negative stimuli. Press <strong>SPACEBAR</strong> to retry.
                 `;
                 document.getElementById('controls-panel').innerHTML = `
-                    <div style="color:#ff3366; font-weight:bold;">SYSTEM OVERLOAD</div>
+                    <div style="color:#ff3366; font-weight:bold;">SYSTEM OVERLOAD - MENTAL HEALTH DAMAGED</div>
                 `;
             }
         }
@@ -258,12 +287,15 @@
                         
                         updateUI();
 
-                        // Check Win/Loss conditions
+                        // Check Win/Loss conditions and update Master Dashboard Health
                         if (badAbsorbed >= LOSE_LIMIT) {
                             gameState = 'lose';
+                            let currentMental = parseInt(localStorage.getItem('health_mental')) || 100;
+                            localStorage.setItem('health_mental', Math.max(0, currentMental - 25)); // Deal 25 mental damage
                             updateUI();
                         } else if (goodAbsorbed >= WIN_TARGET) {
                             gameState = 'win';
+                            localStorage.setItem('health_mental', '100'); // Restore mental health to max
                             updateUI();
                         }
                     }
@@ -329,7 +361,7 @@
                 ctx.globalAlpha = 1.0;
             }
 
-            // Always draw the Meditator in center (except if completely game over maybe? Let's keep him visible)
+            // Always draw the Meditator in center
             if (gameState !== 'idle') {
                 drawMeditator(300, 200);
             }
@@ -347,7 +379,7 @@
                 ctx.font = '14px monospace';
                 ctx.fillText(`You successfully absorbed 10 positive thoughts.`, canvas.width / 2, canvas.height / 2 + 10);
                 ctx.fillStyle = '#00f0ff';
-                ctx.fillText('Press SPACEBAR to return to main menu.', canvas.width / 2, canvas.height / 2 + 45);
+                ctx.fillText('Mental health restored to 100%. Press SPACEBAR to restart.', canvas.width / 2, canvas.height / 2 + 45);
             }
             else if (gameState === 'lose') {
                 ctx.fillStyle = 'rgba(20, 22, 34, 0.85)';
@@ -361,7 +393,7 @@
                 ctx.font = '14px monospace';
                 ctx.fillText(`5 negative thoughts breached the core.`, canvas.width / 2, canvas.height / 2 + 10);
                 ctx.fillStyle = '#ffcc00';
-                ctx.fillText('Press SPACEBAR to try again.', canvas.width / 2, canvas.height / 2 + 45);
+                ctx.fillText('Mental health has been damaged. Press SPACEBAR to try again.', canvas.width / 2, canvas.height / 2 + 45);
             }
         }
 
