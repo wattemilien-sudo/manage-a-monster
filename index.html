@@ -487,6 +487,12 @@
             // Reset the diagnostic screen so it's ready to be run again
             document.getElementById('charts-section').style.display = 'none';
             document.getElementById('diagnostic-output').innerHTML = "System on standby. No active alerts.";
+			window.addEventListener('pageshow', function() {
+    healthData.physical = parseInt(localStorage.getItem('health_physical')) || 100;
+    healthData.mental = parseInt(localStorage.getItem('health_mental')) || 100;
+    updateBars();
+    document.getElementById('charts-section').style.display = 'none';
+    document.getElementById('diagnostic-output').innerHTML = "System on standby. No active alerts.";
         });
     </script>
 </body>
