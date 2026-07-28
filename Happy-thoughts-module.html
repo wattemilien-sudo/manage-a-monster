@@ -1,5 +1,3 @@
-
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -56,7 +54,7 @@
     </style>
 </head>
 <body>
-        <button onclick="window.location.href='index.html'" style="background: #232635; border-color: #00f0ff; color: #00f0ff;">Return to Dashboard</button>
+    <button onclick="window.location.href='index.html'" style="background: #232635; border-color: #00f0ff; color: #00f0ff; margin-bottom: 15px;">Return to Dashboard</button>
     <h2>Grid Module: Positive Reinforcement</h2>
     <div class="instructions" id="instruction-text">
         <strong>SYSTEM IDLE:</strong> Awaiting command to initiate positivity protocol.
@@ -290,19 +288,6 @@
                     localStorage.setItem('health_mental', newMentalHealth);
                     // --- NEW HEALING LOGIC END ---
 
-                    updateUI();
-                }
-            }
-        }
-
-            // Accept the word if the distance is 2 or less (allowing 1-2 incorrect/missing letters)
-            if (lowestDistance <= 2 && bestMatch && !matchedWords.includes(bestMatch)) {
-                matchedWords.push(bestMatch);
-                spawnParticles(canvas.width / 2, canvas.height / 2 + 30);
-                updateUI();
-                
-                if (matchedWords.length >= targetWordCount) {
-                    gameState = 'win';
                     updateUI();
                 }
             }
