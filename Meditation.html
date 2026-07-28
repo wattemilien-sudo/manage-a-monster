@@ -26,7 +26,7 @@
             border-radius: 4px;
             transition: 0.2s;
             font-family: inherit;
-            margin-bottom: 25px; /* Spaces it out from the title */
+            margin-bottom: 25px;
         }
 
         .return-btn:hover {
@@ -293,12 +293,11 @@
                             let currentMental = parseInt(localStorage.getItem('health_mental')) || 100;
                             localStorage.setItem('health_mental', Math.max(0, currentMental - 25)); // Deal 25 mental damage
                             updateUI();
-                       } else if (goodAbsorbed >= WIN_TARGET) {
-    gameState = 'win';
-    let currentMental = parseInt(localStorage.getItem('health_mental')) || 30;
-    localStorage.setItem('health_mental', Math.min(100, currentMental + 25));
-    updateUI();
-}
+                        } else if (goodAbsorbed >= WIN_TARGET) {
+                            gameState = 'win';
+                            let currentMental = parseInt(localStorage.getItem('health_mental')) || 30;
+                            localStorage.setItem('health_mental', Math.min(100, currentMental + 25)); // Dynamically adds 25 health
+                            updateUI();
                         }
                     }
                 }
@@ -381,7 +380,7 @@
                 ctx.font = '14px monospace';
                 ctx.fillText(`You successfully absorbed 10 positive thoughts.`, canvas.width / 2, canvas.height / 2 + 10);
                 ctx.fillStyle = '#00f0ff';
-                ctx.fillText('Mental health restored to 100%. Press SPACEBAR to restart.', canvas.width / 2, canvas.height / 2 + 45);
+                ctx.fillText('Mental health restored. Press SPACEBAR to restart.', canvas.width / 2, canvas.height / 2 + 45);
             }
             else if (gameState === 'lose') {
                 ctx.fillStyle = 'rgba(20, 22, 34, 0.85)';
@@ -395,7 +394,7 @@
                 ctx.font = '14px monospace';
                 ctx.fillText(`5 negative thoughts breached the core.`, canvas.width / 2, canvas.height / 2 + 10);
                 ctx.fillStyle = '#ffcc00';
-                ctx.fillText('Mental health has been damaged. Press SPACEBAR to try again.', canvas.width / 2, canvas.height / 2 + 45);
+                ctx.fillText('Mental health damaged. Press SPACEBAR to try again.', canvas.width / 2, canvas.height / 2 + 45);
             }
         }
 
