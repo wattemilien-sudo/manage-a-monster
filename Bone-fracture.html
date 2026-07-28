@@ -49,9 +49,16 @@
             margin-bottom: 10px;
             line-height: 1.4;
         }
+        .top-nav {
+            margin-bottom: 15px;
+        }
     </style>
 </head>
 <body>
+
+    <div class="top-nav">
+        <button onclick="window.location.href='index.html'" style="background: #232635; border: 1px solid #00f0ff; color: #00f0ff;">Return to Dashboard</button>
+    </div>
 
     <h2>Grid Module: Repair Tissue (Bone Fracture)</h2>
     <div class="instructions" id="instruction-text">
@@ -139,11 +146,12 @@
 
             if (won) {
                 gameState = 'win';
+                localStorage.setItem('health_physical', 100);
                 document.getElementById('instruction-text').innerHTML = `
                     <strong>PROTOCOL SUCCESSFUL:</strong> Bone tissue successfully mended!
                 `;
                 document.getElementById('controls-panel').innerHTML = `
-                    <button onclick="resetToIdle()">Return to Menu</button>
+                    <button onclick="window.location.href='index.html'">Return to Dashboard</button>
                 `;
             } else {
                 repairAttempts--;
@@ -154,15 +162,17 @@
                     `;
                     document.getElementById('controls-panel').innerHTML = `
                         <div style="color:#ff3366;">1 Attempt Left</div>
-                        <button onclick="resetToIdle()">Return to Menu</button>
+                        <button onclick="window.location.href='index.html'">Return to Dashboard</button>
                     `;
                 } else {
                     gameState = 'gameOver';
+                    localStorage.setItem('health_physical', 30);
                     document.getElementById('instruction-text').innerHTML = `
                         <strong style="color:#ff3366;">GAME OVER:</strong> All repair attempts exhausted. System locked.
                     `;
                     document.getElementById('controls-panel').innerHTML = `
                         <div style="color:#ff3366;">SYSTEM LOCKED</div>
+                        <button onclick="window.location.href='index.html'">Return to Dashboard</button>
                     `;
                 }
             }
