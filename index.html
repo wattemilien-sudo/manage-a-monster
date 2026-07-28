@@ -3,645 +3,563 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Biomechanical Logistics: Immune Defense Module</title>
+    <title>Master Health Dashboard</title>
     <style>
+        /* --- CSS Variables for Sci-Fi Theme --- */
+        :root {
+            --bg-color: #0b0c10;
+            --panel-bg: #151821;
+            --panel-border: #2a2e3d;
+            --text-main: #e0e6ed;
+            --text-muted: #8892b0;
+            --cyan: #00f0ff;
+            --cyan-glow: rgba(0, 240, 255, 0.3);
+            --green: #39ff14;
+            --yellow: #ffcc00;
+            --red: #ff3366;
+        }
+
+        /* --- Global Styles --- */
         body {
-            background-color: #0d0e15;
-            color: #e0e6ed;
-            font-family: monospace;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: 'Courier New', Courier, monospace;
+            margin: 0;
+            padding: 30px 20px;
+            display: flex;
+            justify-content: center;
+            line-height: 1.6;
+        }
+
+        .dashboard-container {
+            width: 100%;
+            max-width: 950px;
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+        }
+
+        /* --- Panels & Labels --- */
+        .panel {
+            background: var(--panel-bg);
+            border: 1px solid var(--panel-border);
+            padding: 20px;
+            border-radius: 4px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        }
+
+        .label {
+            display: inline-block;
+            padding: 6px 12px;
+            margin-bottom: 10px;
+            font-weight: bold;
+            font-size: 14px;
+            background: #0b0c10;
+            border: 1px solid var(--panel-border);
+            color: var(--cyan);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* --- Health Bars Section --- */
+        .health-block {
+            margin-bottom: 20px;
+        }
+        .health-block:last-child {
+            margin-bottom: 0;
+        }
+
+        .bar-container {
+            border: 1px solid #333;
+            background: #0b0c10;
+            height: 25px;
+            position: relative;
+            display: flex;
+            align-items: center;
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .bar-container .min, .bar-container .max {
+            position: absolute;
+            top: -22px;
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+        .bar-container .min { left: 0; }
+        .bar-container .max { right: 0; }
+
+        .bar-fill {
+            height: 100%;
+            width: 100%;
+            background: var(--green);
+            transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.8s ease;
+            box-shadow: 0 0 10px rgba(57, 255, 20, 0.5);
+        }
+
+        /* --- Middle Layout (Split Section) --- */
+        .middle-layout {
+            display: flex;
+            gap: 25px;
+            flex-wrap: wrap;
+        }
+        .left-col, .right-col {
+            flex: 1;
+            min-width: 300px;
+        }
+        .right-col {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        /* --- Diagnostic Tools --- */
+        .diagnostic-btn {
+            background: rgba(0, 240, 255, 0.05);
+            color: var(--cyan);
+            border: 1px solid var(--cyan);
+            padding: 12px;
+            text-align: center;
+            font-family: inherit;
+            font-size: 15px;
+            font-weight: bold;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            letter-spacing: 2px;
+        }
+
+        .diagnostic-btn:hover {
+            background: var(--cyan);
+            color: #000;
+            box-shadow: 0 0 15px var(--cyan-glow);
+        }
+
+        .diagnostic-box {
+            background: #0b0c10;
+            border: 1px solid var(--panel-border);
+            padding: 15px;
+            min-height: 100px;
+            font-size: 14px;
+            color: var(--text-muted);
+            border-left: 3px solid var(--panel-border);
+            transition: border-color 0.3s ease;
+        }
+
+        /* --- Charts Section --- */
+        .charts-container {
+            display: none; 
+            animation: fadeIn 0.5s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .charts-header {
+            margin: 0 0 15px 0;
+            font-size: 12px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            border-bottom: 1px dashed var(--panel-border);
+            padding-bottom: 8px;
+        }
+
+        .charts-flex {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .chart-box {
+            flex: 1;
+            min-width: 250px;
+        }
+        .chart-box h4 {
+            margin: 0 0 10px 0;
+            color: var(--cyan);
+            font-size: 14px;
+            text-transform: uppercase;
+        }
+        canvas.chart {
+            background: #0b0c10;
+            border: 1px solid var(--panel-border);
+            width: 100%;
+            height: 160px;
+            border-radius: 2px;
+        }
+
+        /* --- Modules Grid --- */
+        .modules-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .module-btn {
+            aspect-ratio: 1 / 1;
+            background: #0b0c10;
+            border: 1px solid var(--panel-border);
+            cursor: pointer;
             display: flex;
             flex-direction: column;
             align-items: center;
-            margin-top: 20px;
-        }
-        .header-container {
-            width: 600px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 5px;
-        }
-        h2 {
-            margin: 0;
-            font-size: 1.2rem;
-            color: #00f0ff;
-        }
-        .menu-btn {
-            background: #1f2333;
-            color: #00f0ff;
-            border: 1px solid #444;
-            padding: 6px 12px;
-            cursor: pointer;
-            border-radius: 4px;
-            font-family: inherit;
-            font-size: 12px;
-            transition: 0.2s;
-            text-decoration: none;
-        }
-        .menu-btn:hover {
-            background: #00f0ff;
-            color: #000;
-            border-color: #fff;
-        }
-        canvas {
-            background-color: #1a1c29;
-            border: 2px solid #333;
-            box-shadow: 0 0 20px rgba(255, 51, 102, 0.2);
-        }
-        .controls {
-            margin-top: 15px;
-            display: flex;
-            gap: 15px;
-            background: #232635;
-            padding: 15px;
-            border-radius: 8px;
-            border: 1px solid #444;
-            align-items: center;
-            flex-wrap: wrap;
             justify-content: center;
-        }
-        button {
-            background: #333;
-            color: white;
-            border: 1px solid #555;
-            padding: 10px 15px;
-            cursor: pointer;
-            border-radius: 4px;
-            font-family: inherit;
-            transition: 0.2s;
-        }
-        button:hover { background: #444; }
-        .instructions {
-            color: #ffcc00;
-            max-width: 650px;
+            color: var(--text-muted);
+            transition: all 0.2s ease-in-out;
+            text-decoration: none;
+            padding: 15px;
             text-align: center;
-            margin-bottom: 10px;
-            line-height: 1.4;
+            position: relative;
+            overflow: hidden;
         }
+
+        .module-btn::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: linear-gradient(135deg, rgba(0, 240, 255, 0.1) 0%, transparent 100%);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .module-btn:hover {
+            border-color: var(--cyan);
+            color: var(--cyan);
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0, 240, 255, 0.15);
+        }
+
+        .module-btn:hover::before {
+            opacity: 1;
+        }
+
+        .module-icon {
+            font-size: 38px;
+            margin-bottom: 12px;
+            z-index: 1;
+        }
+        
+        .module-btn div:last-child {
+            z-index: 1;
+            font-size: 13px;
+            font-weight: bold;
+        }
+
     </style>
 </head>
 <body>
 
-    <div class="header-container">
-        <h2>Grid Module: Immune System</h2>
-        <button class="menu-btn" onclick="window.location.href='index.html'">&larr; Main Menu</button>
-    </div>
+    <div class="dashboard-container">
+        
+        <!-- Overall Health -->
+        <div class="panel">
+            <div class="health-block">
+                <div class="label">System Core Health</div>
+                <div class="bar-container" style="margin-top: 15px;">
+                    <span class="min">0%</span><span class="max">100%</span>
+                    <div class="bar-fill" id="bar-overall"></div>
+                </div>
+            </div>
+        </div>
 
-    <div class="instructions" id="instruction-text">
-        <strong>SYSTEM IDLE:</strong> Select a protocol to engage the grid module.
-    </div>
+        <!-- Middle Layout -->
+        <div class="middle-layout">
+            
+            <!-- Left Column: Specific Health -->
+            <div class="panel left-col">
+                <div class="label">Sub-Systems</div>
+                <div class="health-block" style="margin-top: 15px;">
+                    <div style="margin-bottom: 5px; font-size: 13px; color: #8892b0;">Physical Integrity</div>
+                    <div class="bar-container">
+                        <div class="bar-fill" id="bar-physical"></div>
+                    </div>
+                </div>
 
-    <div class="controls" id="controls-panel">
-        <button id="btn-immunisation" onclick="startImmunisation()">Immunisation Protocol</button>
-        <button id="btn-defense" onclick="startDefense()">Defense Protocol (Spawn Lvl: 1)</button>
-    </div>
+                <div class="health-block">
+                    <div style="margin-bottom: 5px; font-size: 13px; color: #8892b0;">Mental Stability</div>
+                    <div class="bar-container">
+                        <div class="bar-fill" id="bar-mental"></div>
+                    </div>
+                </div>
+            </div>
 
-    <br>
-    <canvas id="gameCanvas" width="600" height="400"></canvas>
+            <!-- Right Column: Diagnostics -->
+            <div class="panel right-col">
+                <div class="label">Diagnostics</div>
+                <button class="diagnostic-btn" onclick="runDiagnostic()">Initialize Scan</button>
+                <div class="diagnostic-box" id="diagnostic-output">
+                    > System on standby.<br>> No active alerts detected in local environment.<br>> Awaiting command...
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Charts Section (Revealed on Diagnostic Run) -->
+        <div class="panel charts-container" id="charts-section">
+            <div class="charts-header">Telemetry Logs (Last 10 Min)</div>
+            <div class="charts-flex">
+                <div class="chart-box">
+                    <h4>Mental Resonance</h4>
+                    <canvas id="chart-mental" class="chart"></canvas>
+                </div>
+                <div class="chart-box">
+                    <h4>Physical Vitality</h4>
+                    <canvas id="chart-physical" class="chart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modules Section -->
+        <div class="panel">
+            <div class="label">Active Modules</div>
+            <div class="modules-grid">
+                
+                <a href="Bone-fracture.html" class="module-btn">
+                    <div class="module-icon">🦴</div>
+                    <div>1. Bone Fracture</div>
+                </a>
+                
+                <a href="Mental%20health%20block%20buster.html" class="module-btn">
+                    <div class="module-icon">🧩</div>
+                    <div>2. Mental Block Buster</div>
+                </a>
+                
+                <a href="Happy-thoughts-module.html" class="module-btn">
+                    <div class="module-icon">✨</div>
+                    <div>3. Happy Thoughts</div>
+                </a>
+                
+                <a href="Meditation.html" class="module-btn">
+                    <div class="module-icon">🧘</div>
+                    <div>4. Meditation</div>
+                </a>
+                
+                <a href="poison.html" class="module-btn">
+                    <div class="module-icon">🧪</div>
+                    <div>5. Poison Protocol</div>
+                </a>
+                
+                <a href="Imunesystem.html" class="module-btn">
+                    <div class="module-icon">🛡️</div>
+                    <div>6. Immune System</div>
+                </a>
+                
+                <a href="Trauma.html" class="module-btn">
+                    <div class="module-icon">❤️‍🩹</div>
+                    <div>7. Trauma Sync</div>
+                </a>
+
+            </div>
+        </div>
+
+    </div>
 
     <script>
-        const canvas = document.getElementById('gameCanvas');
-        const ctx = canvas.getContext('2d');
-        
-        const TILE_SIZE = 40;
-        const COLS = canvas.width / TILE_SIZE;
-        const ROWS = canvas.height / TILE_SIZE;
+        // Initialize health variables set to 30 by default for testing
+        let healthData = {
+            physical: localStorage.getItem('health_physical') !== null ? parseInt(localStorage.getItem('health_physical')) : 30,
+            mental: localStorage.getItem('health_mental') !== null ? parseInt(localStorage.getItem('health_mental')) : 30
+        };
 
-        // Game States: 'idle', 'immunisation', 'summary', 'defense'
-        let gameState = 'idle';
+        // Save the 30 default to localStorage immediately so modules pick it up correctly
+        localStorage.setItem('health_physical', healthData.physical);
+        localStorage.setItem('health_mental', healthData.mental);
 
-        // Immunisation / Pac-Man Minigame Variables
-        let pacman = { x: 0, y: 0, radius: 14, speed: 2.5, dx: 0, dy: 0, angle: 0 };
-        let dots = [];
-        let particlesEaten = 0;
-        let immunisationTimer = 20; 
-        let immunisationInterval = null;
-        let currentLevel = 1;
-        const levelTargets = { 1: 50, 2: 100, 3: 175 };
-        let summaryTimer = 10; 
-        let summaryInterval = null;
-
-        // Defense Protocol Variables
-        let grid = Array.from({ length: ROWS }, () => Array(COLS).fill({ type: 'empty' }));
-        const veinRow = 5;
-        for (let c = 1; c < COLS - 1; c++) {
-            grid[veinRow][c] = { type: 'vein' };
-        }
-        let energy = 60;
-        let baseHealth = 100;
-        let defenseWave = 1;
-        let parasites = [];
-        let projectiles = [];
-        let turrets = [];
-        let defenseIntervals = [];
-        let waveSpawnCount = 0;
-        let spawnTimeout = null;
-
-        // --- HEALTH REWARD HELPER ---
-        function rewardHealthAndExit(amount) {
-            let currentPhysical = parseInt(localStorage.getItem('health_physical')) || 100;
-            let newPhysical = Math.min(100, currentPhysical + amount);
-            localStorage.setItem('health_physical', newPhysical);
-            window.location.href = 'index.html';
+        function getHealthColor(value) {
+            if (value > 60) return { bg: 'var(--green)', shadow: 'rgba(57, 255, 20, 0.5)' };
+            if (value > 30) return { bg: 'var(--yellow)', shadow: 'rgba(255, 204, 0, 0.5)' };
+            return { bg: 'var(--red)', shadow: 'rgba(255, 51, 102, 0.5)' };
         }
 
-        // --- IDLE SCREEN ---
-        function resetToIdle() {
-            gameState = 'idle';
-            clearInterval(immunisationInterval);
-            clearInterval(summaryInterval);
-            clearDefenseIntervals();
+        function updateBars() {
+            let overall = (healthData.physical + healthData.mental) / 2;
 
-            document.getElementById('instruction-text').innerHTML = `
-                <strong>SYSTEM IDLE:</strong> Select a protocol to engage the grid module.
-            `;
-            document.getElementById('controls-panel').innerHTML = `
-                <button id="btn-immunisation" onclick="startImmunisation()">Immunisation Protocol (Lvl ${currentLevel})</button>
-                <button id="btn-defense" onclick="startDefense()">Defense Protocol (Spawn Lvl: ${currentLevel})</button>
-            `;
-        }
+            const bars = {
+                'bar-overall': overall,
+                'bar-physical': healthData.physical,
+                'bar-mental': healthData.mental
+            };
 
-        // --- IMMUNISATION PROTOCOL ---
-        function startImmunisation() {
-            gameState = 'immunisation';
-            if (currentLevel > 3) {
-                currentLevel = 1;
-                particlesEaten = 0;
-            }
-            if (currentLevel === 1) {
-                particlesEaten = 0;
-            }
-            immunisationTimer = 20;
-
-            pacman.x = TILE_SIZE * 1.5;
-            pacman.y = TILE_SIZE * 1.5;
-            pacman.dx = 0;
-            pacman.dy = 0;
-            pacman.angle = 0;
-
-            generateImmunisationMaze();
-
-            let needed = Math.max(0, levelTargets[currentLevel] - particlesEaten);
-            document.getElementById('instruction-text').innerHTML = `
-                <strong>IMMUNISATION ACTIVE (Level ${currentLevel}):</strong> Use <strong>Arrow Keys</strong> to eat particles! Time: <span id="time-display" style="color:#ffcc00;">20</span>s | Total Eaten: <span id="eaten-display" style="color:#39ff14;">${particlesEaten}</span> | Needed: <span id="needed-display" style="color:#ff3366;">${needed}</span>
-            `;
-            document.getElementById('controls-panel').innerHTML = `
-                <div>Level: <strong style="color:#00f0ff;">${currentLevel}</strong></div>
-                <button onclick="resetToIdle()" style="background: #333; margin-left: 15px;">Abort Protocol</button>
-            `;
-
-            clearInterval(immunisationInterval);
-            immunisationInterval = setInterval(() => {
-                immunisationTimer--;
-                let timeEl = document.getElementById('time-display');
-                if (timeEl) timeEl.innerText = immunisationTimer;
-
-                if (immunisationTimer <= 0) {
-                    clearInterval(immunisationInterval);
-                    endImmunisation();
-                }
-            }, 1000);
-        }
-
-        let mazeWalls = [];
-        function generateImmunisationMaze() {
-            dots = [];
-            mazeWalls = [];
-
-            const wallCoords = [
-                {r: 2, c: 2}, {r: 2, c: 3}, {r: 2, c: 4}, {r: 2, c: 8}, {r: 2, c: 9}, {r: 2, c: 10},
-                {r: 4, c: 2}, {r: 4, c: 6}, {r: 4, c: 7}, {r: 4, c: 11},
-                {r: 6, c: 4}, {r: 6, c: 5}, {r: 6, c: 9}, {r: 6, c: 10},
-                {r: 7, c: 2}, {r: 7, c: 12}
-            ];
-            wallCoords.forEach(w => mazeWalls.push(`${w.r},${w.c}`));
-
-            for (let r = 0; r < ROWS; r++) {
-                for (let c = 0; c < COLS; c++) {
-                    if (r === 0 || r === ROWS - 1 || c === 0 || c === COLS - 1) continue;
-                    if (mazeWalls.includes(`${r},${c}`)) continue;
-
-                    dots.push({
-                        x: c * TILE_SIZE + TILE_SIZE / 2,
-                        y: r * TILE_SIZE + TILE_SIZE / 2,
-                        eaten: false
-                    });
-                }
+            for (const [id, value] of Object.entries(bars)) {
+                let el = document.getElementById(id);
+                let colors = getHealthColor(value);
+                
+                el.style.width = `${value}%`;
+                el.style.backgroundColor = colors.bg;
+                el.style.boxShadow = `0 0 10px ${colors.shadow}`;
             }
         }
 
-        function endImmunisation() {
-            gameState = 'summary';
-            summaryTimer = 10;
+        // Run this on page load to set initial UI
+        updateBars();
 
-            let target = levelTargets[currentLevel];
-            let passedLevel = particlesEaten >= target;
-
-            if (passedLevel) {
-                currentLevel++;
+        // -----------------------------------------------------------
+        // Diagnostic Logic Arrays (The "Pools")
+        // -----------------------------------------------------------
+        const physicalPool = [
+            {
+                problem: "Neuro-Toxin Buildup Detected",
+                summary: "Elevated foreign substance levels have triggered a system-wide alert. Initiate the Poison Protocol immediately to restore optimal physical function."
+            },
+            {
+                problem: "Cardiovascular Filter Clogged",
+                summary: "Particulate matter is obstructing the primary bio-valves. Rerouting circulatory pressure is required to dislodge the blockages."
+            },
+            {
+                problem: "Core Temperature Critical",
+                summary: "Thermal exhaust vents are failing to dissipate metabolic heat. Reduce system processing load and engage cooling protocols immediately."
+            },
+            {
+                problem: "Structural Integrity Compromised",
+                summary: "Micro-fractures detected in the skeletal support matrix. Engage the Bone Fracture module immediately to initiate osteoblast repair."
             }
+        ];
 
-            document.getElementById('instruction-text').innerHTML = `
-                <strong>IMMUNISATION COMPLETE:</strong> Returning to dashboard with updated health in <span id="summary-time" style="color:#ffcc00;">3</span>s.
-            `;
-            document.getElementById('controls-panel').innerHTML = `
-                <div>Total Eaten: <strong style="color:#39ff14;">${particlesEaten}</strong> | Target Met: <strong>${passedLevel ? 'YES' : 'NO'}</strong></div>
-            `;
-
-            // Give health bonus depending on performance and return to menu
-            let healthReward = passedLevel ? 20 : 10;
-            setTimeout(() => {
-                rewardHealthAndExit(healthReward);
-            }, 3000);
-        }
-
-        // --- DEFENSE PROTOCOL ---
-        function startDefense() {
-            gameState = 'defense';
-            energy = 60;
-            baseHealth = 100;
-            defenseWave = 1;
-            waveSpawnCount = 0;
-            parasites = [];
-            projectiles = [];
-            turrets = [];
-            
-            grid = Array.from({ length: ROWS }, () => Array(COLS).fill({ type: 'empty' }));
-            for (let c = 1; c < COLS - 1; c++) {
-                grid[veinRow][c] = { type: 'vein' };
+        const mentalPool = [
+            {
+                problem: "Positivity Matrix Depleted",
+                summary: "The neural network is running dangerously low on serotonin. Engaging the Happy Thoughts module is highly recommended to stabilize mood."
+            },
+            {
+                problem: "Synaptic Latency High",
+                summary: "Action potentials are firing much slower than acceptable thresholds. Recalibrating neurotransmitter relays is necessary to boost signal speed."
+            },
+            {
+                problem: "Cognitive Overload Detected",
+                summary: "The frontal lobe is processing too many concurrent trauma threads. Initiate the Trauma Sync or Block Buster module to clear the queue."
             }
+        ];
 
-            updateDefenseHUD();
-            clearDefenseIntervals();
+        // -----------------------------------------------------------
+        // Diagnostic Engine
+        // -----------------------------------------------------------
+        function runDiagnostic() {
+            document.getElementById('charts-section').style.display = 'block';
+            let outputBox = document.getElementById('diagnostic-output');
 
-            defenseIntervals.push(setInterval(() => {
-                if (gameState === 'defense') {
-                    energy += 2;
-                    updateDefenseHUD();
-                }
-            }, 1300));
+            if (healthData.physical < 50) {
+                let randomIssue = physicalPool[Math.floor(Math.random() * physicalPool.length)];
+                outputBox.style.borderLeftColor = "var(--red)";
+                outputBox.innerHTML = 
+                    `<span style='color:var(--red)'><strong>[CRITICAL ALERT]</strong> ${randomIssue.problem}</span><br><br>` +
+                    `<span style='color:var(--text-muted)'>${randomIssue.summary}</span>`;
+                
+                drawTrendChart('chart-physical', [100, 95, 80, healthData.physical + 10, healthData.physical], '#ff3366');
+                drawTrendChart('chart-mental', [100, 90, 85, healthData.mental + 5, healthData.mental], '#00f0ff');
 
-            scheduleNextSpawn();
-        }
+            } else if (healthData.mental < 50) {
+                let randomIssue = mentalPool[Math.floor(Math.random() * mentalPool.length)];
+                outputBox.style.borderLeftColor = "var(--red)";
+                outputBox.innerHTML = 
+                    `<span style='color:var(--red)'><strong>[CRITICAL ALERT]</strong> ${randomIssue.problem}</span><br><br>` +
+                    `<span style='color:var(--text-muted)'>${randomIssue.summary}</span>`;
+                
+                drawTrendChart('chart-physical', [100, 95, 95, healthData.physical, healthData.physical], '#00f0ff');
+                drawTrendChart('chart-mental', [100, 90, 70, healthData.mental + 10, healthData.mental], '#ff3366');
 
-        function scheduleNextSpawn() {
-            if (gameState !== 'defense') return;
-
-            spawnDefenseParasite();
-
-            let delay = 2400;
-            if (defenseWave === 2) delay = 1800;
-            if (defenseWave === 3) delay = 1100;
-
-            spawnTimeout = setTimeout(scheduleNextSpawn, delay);
-        }
-
-        function updateDefenseHUD() {
-            let instEl = document.getElementById('instruction-text');
-            if (instEl && gameState === 'defense') {
-                instEl.innerHTML = `
-                    <strong>DEFENSE PROTOCOL (Wave ${defenseWave}/3):</strong> Click empty tissue to place a Turret (Cost: 10 Energy). Click turrets to upgrade!
-                `;
-            }
-            let controlsEl = document.getElementById('controls-panel');
-            if (controlsEl && gameState === 'defense') {
-                controlsEl.innerHTML = `
-                    <div>Energy: <strong id="energy-display" style="color:#ffcc00;">${energy}</strong></div>
-                    <div>Health: <strong id="health-display" style="color:#ff3366;">${baseHealth}</strong></div>
-                    <div>Wave: <strong style="color:#00f0ff;">${defenseWave}</strong></div>
-                    <button onclick="resetToIdle()" style="background: #551111;">Exit Protocol</button>
-                `;
+            } else {
+                outputBox.style.borderLeftColor = "var(--green)";
+                outputBox.innerHTML = 
+                    `<span style='color:var(--green)'><strong>[SYSTEM NORMAL]</strong> All bio-metrics operating within acceptable parameters.</span><br><br>` +
+                    `<span style='color:var(--text-muted)'>No anomalies detected in the structural or neural grid.</span>`;
+                
+                drawTrendChart('chart-physical', [100, 98, 100, 99, healthData.physical], '#39ff14');
+                drawTrendChart('chart-mental', [100, 99, 97, 100, healthData.mental], '#39ff14');
             }
         }
 
-        function clearDefenseIntervals() {
-            defenseIntervals.forEach(clearInterval);
-            defenseIntervals = [];
-            clearTimeout(spawnTimeout);
-        }
-
-        function spawnDefenseParasite() {
-            let hp = 4;
-            let speed = 1.2;
-            let color = '#39ff14';
-
-            if (defenseWave === 2) {
-                hp = 10;
-                speed = 1.4;
-                color = '#00f0ff';
-            } else if (defenseWave >= 3) {
-                hp = 20;
-                speed = 1.6;
-                color = '#ff00ff';
-            }
-
-            parasites.push({
-                x: 1 * TILE_SIZE + TILE_SIZE / 2,
-                y: veinRow * TILE_SIZE + TILE_SIZE / 2,
-                hp: hp,
-                maxHp: hp,
-                speed: speed,
-                color: color
-            });
-
-            waveSpawnCount++;
-            let maxSpawnsPerWave = (defenseWave === 3) ? 8 : 6;
-
-            if (waveSpawnCount >= maxSpawnsPerWave) {
-                if (defenseWave < 3) {
-                    defenseWave++;
-                    waveSpawnCount = 0;
-                    clearTimeout(spawnTimeout);
-                    updateDefenseHUD();
-                    scheduleNextSpawn();
-                } else {
-                    clearTimeout(spawnTimeout);
-                }
-            }
-        }
-
-        // Input Listeners
+        // -----------------------------------------------------------
+        // Dev Hotkeys
+        // -----------------------------------------------------------
         window.addEventListener('keydown', (e) => {
-            if (gameState === 'immunisation') {
-                if (e.key === 'ArrowLeft') { pacman.dx = -pacman.speed; pacman.dy = 0; }
-                if (e.key === 'ArrowRight') { pacman.dx = pacman.speed; pacman.dy = 0; }
-                if (e.key === 'ArrowUp') { pacman.dx = 0; pacman.dy = -pacman.speed; }
-                if (e.key === 'ArrowDown') { pacman.dx = 0; pacman.dy = pacman.speed; }
+            if (e.key.toLowerCase() === 'p') {
+                healthData.physical = 30; 
+                localStorage.setItem('health_physical', healthData.physical);
+                updateBars();
+                alert("Simulated Physical Attack! Press 'Initialize Scan' to see the alert.");
+            }
+            if (e.key.toLowerCase() === 'm') {
+                healthData.mental = 30; 
+                localStorage.setItem('health_mental', healthData.mental);
+                updateBars();
+                alert("Simulated Mental Stress! Press 'Initialize Scan' to see the alert.");
+            }
+            if (e.key.toLowerCase() === 'h') {
+                healthData.physical = 100; 
+                healthData.mental = 100;
+                localStorage.setItem('health_physical', 100);
+                localStorage.setItem('health_mental', 100);
+                updateBars();
+                alert("Health restored to 100%.");
             }
         });
 
-        canvas.addEventListener('click', (e) => {
-            if (gameState === 'defense') {
-                const rect = canvas.getBoundingClientRect();
-                const c = Math.floor((e.clientX - rect.left) / TILE_SIZE);
-                const r = Math.floor((e.clientY - rect.top) / TILE_SIZE);
-
-                if (r >= 0 && r < ROWS && c >= 0 && c < COLS) {
-                    const tile = grid[r][c];
-
-                    if (tile.type === 'turret') {
-                        let turret = turrets.find(t => t.r === r && t.c === c);
-                        if (turret && turret.level < 5) {
-                            let upgradeCost = 15;
-                            if (energy >= upgradeCost) {
-                                energy -= upgradeCost;
-                                turret.level++;
-                                turret.range += 20;
-                                updateDefenseHUD();
-                            }
-                        }
-                    } else if (tile.type === 'empty') {
-                        let cost = 10;
-                        if (energy >= cost) {
-                            energy -= cost;
-                            grid[r][c] = { type: 'turret' };
-                            turrets.push({
-                                r: r,
-                                c: c,
-                                level: currentLevel,
-                                range: 90 + currentLevel * 15,
-                                cooldown: 0
-                            });
-                            updateDefenseHUD();
-                        }
-                    }
-                }
-            }
-        });
-
-        // --- UPDATE LOOP ---
-        function update() {
-            if (gameState === 'immunisation') {
-                if (pacman.dx > 0) pacman.angle = 0;
-                else if (pacman.dx < 0) pacman.angle = Math.PI;
-                else if (pacman.dy > 0) pacman.angle = Math.PI / 2;
-                else if (pacman.dy < 0) pacman.angle = Math.PI * 1.5;
-
-                let nextX = pacman.x + pacman.dx;
-                let nextY = pacman.y + pacman.dy;
-
-                let c = Math.floor(nextX / TILE_SIZE);
-                let r = Math.floor(nextY / TILE_SIZE);
-
-                if (c >= 0 && c < COLS && r >= 0 && r < ROWS && !mazeWalls.includes(`${r},${c}`)) {
-                    pacman.x = nextX;
-                    pacman.y = nextY;
-                }
-
-                for (let dot of dots) {
-                    if (!dot.eaten) {
-                        let dist = Math.hypot(pacman.x - dot.x, pacman.y - dot.y);
-                        if (dist < pacman.radius + 4) {
-                            dot.eaten = true;
-                            particlesEaten++;
-                            let eatenEl = document.getElementById('eaten-display');
-                            if (eatenEl) eatenEl.innerText = particlesEaten;
-                            let neededEl = document.getElementById('needed-display');
-                            if (neededEl) {
-                                let needed = Math.max(0, levelTargets[currentLevel] - particlesEaten);
-                                neededEl.innerText = needed;
-                            }
-                        }
-                    }
-                }
-            } else if (gameState === 'defense') {
-                for (let i = parasites.length - 1; i >= 0; i--) {
-                    let p = parasites[i];
-                    p.x += p.speed;
-
-                    if (p.x > (COLS - 1) * TILE_SIZE) {
-                        parasites.splice(i, 1);
-                        baseHealth = Math.max(0, baseHealth - 15);
-                        let healthEl = document.getElementById('health-display');
-                        if (healthEl) healthEl.innerText = baseHealth;
-
-                        if (baseHealth <= 0) {
-                            alert("Defense breached! Returning to menu.");
-                            resetToIdle();
-                        }
-                        continue;
-                    }
-
-                    if (p.hp <= 0) {
-                        parasites.splice(i, 1);
-                        energy += 6;
-                        let energyEl = document.getElementById('energy-display');
-                        if (energyEl) energyEl.innerText = energy;
-                    }
-                }
-
-                // Check Victory Condition
-                if (defenseWave === 3 && waveSpawnCount >= 8 && parasites.length === 0) {
-                    alert("Victory! All waves cleared successfully! Physical health restored.");
-                    rewardHealthAndExit(30); // Major reward for winning defense
-                    return;
-                }
-
-                for (let t of turrets) {
-                    if (t.cooldown > 0) t.cooldown--;
-
-                    let tX = t.c * TILE_SIZE + TILE_SIZE / 2;
-                    let tY = t.r * TILE_SIZE + TILE_SIZE / 2;
-
-                    if (t.cooldown === 0) {
-                        let target = null;
-                        let minDist = t.range;
-
-                        for (let p of parasites) {
-                            let dist = Math.hypot(p.x - tX, p.y - tY);
-                            if (dist < minDist) {
-                                minDist = dist;
-                                target = p;
-                            }
-                        }
-
-                        if (target) {
-                            projectiles.push({
-                                x: tX,
-                                y: tY,
-                                target: target,
-                                speed: 6,
-                                damage: t.level
-                            });
-                            t.cooldown = Math.max(15, 45 - t.level * 6);
-                        }
-                    }
-                }
-
-                for (let i = projectiles.length - 1; i >= 0; i--) {
-                    let proj = projectiles[i];
-                    if (!parasites.includes(proj.target)) {
-                        projectiles.splice(i, 1);
-                        continue;
-                    }
-
-                    let dx = proj.target.x - proj.x;
-                    let dy = proj.target.y - proj.y;
-                    let dist = Math.hypot(dx, dy);
-
-                    if (dist < proj.speed) {
-                        proj.target.hp -= proj.damage;
-                        projectiles.splice(i, 1);
-                    } else {
-                        proj.x += (dx / dist) * proj.speed;
-                        proj.y += (dy / dist) * proj.speed;
-                    }
-                }
-            }
-        }
-
-        // --- DRAW LOOP ---
-        function draw() {
+        // -----------------------------------------------------------
+        // Canvas Chart Drawing (Upgraded with Gradients)
+        // -----------------------------------------------------------
+        function drawTrendChart(canvasId, dataPoints, lineColor) {
+            const canvas = document.getElementById(canvasId);
+            const ctx = canvas.getContext('2d');
+            
+            canvas.width = canvas.offsetWidth;
+            canvas.height = canvas.offsetHeight;
+            
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            if (gameState === 'idle') {
-                ctx.fillStyle = '#ffcc00';
-                ctx.font = '16px monospace';
-                ctx.textAlign = 'center';
-                ctx.fillText('SYSTEM STANDBY', canvas.width / 2, canvas.height / 2 - 10);
-                ctx.fillStyle = '#888';
-                ctx.font = '12px monospace';
-                ctx.fillText('Choose Immunisation or Defense Protocol above.', canvas.width / 2, canvas.height / 2 + 15);
-            } else if (gameState === 'immunisation') {
-                for (let r = 0; r < ROWS; r++) {
-                    for (let c = 0; c < COLS; c++) {
-                        const x = c * TILE_SIZE;
-                        const y = r * TILE_SIZE;
-                        ctx.strokeStyle = '#222';
-                        ctx.strokeRect(x, y, TILE_SIZE, TILE_SIZE);
-
-                        if (mazeWalls.includes(`${r},${c}`)) {
-                            ctx.fillStyle = '#2d3250';
-                            ctx.fillRect(x, y, TILE_SIZE, TILE_SIZE);
-                        }
-                    }
-                }
-
-                for (let dot of dots) {
-                    if (!dot.eaten) {
-                        ctx.fillStyle = '#39ff14';
-                        ctx.beginPath();
-                        ctx.arc(dot.x, dot.y, 4, 0, Math.PI * 2);
-                        ctx.fill();
-                    }
-                }
-
-                ctx.save();
-                ctx.translate(pacman.x, pacman.y);
-                ctx.rotate(pacman.angle);
-                ctx.fillStyle = '#ffcc00';
+            ctx.strokeStyle = '#1f293d';
+            ctx.lineWidth = 1;
+            for(let i = 0; i <= 5; i++) {
+                let y = (canvas.height / 5) * i;
                 ctx.beginPath();
-                ctx.arc(0, 0, pacman.radius, 0.2 * Math.PI, 1.8 * Math.PI);
-                ctx.lineTo(0, 0);
-                ctx.fill();
-                ctx.restore();
-
-            } else if (gameState === 'summary') {
-                ctx.fillStyle = '#141622';
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
-                ctx.fillStyle = '#00f0ff';
-                ctx.font = 'bold 20px monospace';
-                ctx.textAlign = 'center';
-                ctx.fillText('IMMUNISATION REPORT', canvas.width / 2, canvas.height / 2 - 30);
-
-                ctx.fillStyle = '#ffffff';
-                ctx.font = '14px monospace';
-                ctx.fillText(`Total Particles Eaten: ${particlesEaten}`, canvas.width / 2, canvas.height / 2 + 5);
-                ctx.fillText(`Syncing Health & Returning...`, canvas.width / 2, canvas.height / 2 + 30);
-
-            } else if (gameState === 'defense') {
-                for (let r = 0; r < ROWS; r++) {
-                    for (let c = 0; c < COLS; c++) {
-                        const tile = grid[r][c];
-                        const x = c * TILE_SIZE;
-                        const y = r * TILE_SIZE;
-                        ctx.strokeStyle = '#222';
-                        ctx.strokeRect(x, y, TILE_SIZE, TILE_SIZE);
-
-                        if (tile.type === 'vein') {
-                            ctx.fillStyle = '#611724';
-                            ctx.fillRect(x, y + 8, TILE_SIZE, TILE_SIZE - 16);
-                        } else if (tile.type === 'turret') {
-                            let turretObj = turrets.find(t => t.r === r && t.c === c);
-                            ctx.fillStyle = turretObj && turretObj.level >= 3 ? '#00f0ff' : '#ffcc00';
-                            ctx.beginPath(); 
-                            ctx.arc(x + TILE_SIZE / 2, y + TILE_SIZE / 2, 12, 0, Math.PI * 2); 
-                            ctx.fill();
-
-                            if (turretObj) {
-                                ctx.fillStyle = '#000';
-                                ctx.font = 'bold 10px monospace';
-                                ctx.textAlign = 'center';
-                                ctx.textBaseline = 'middle';
-                                ctx.fillText('L' + turretObj.level, x + TILE_SIZE / 2, y + TILE_SIZE / 2);
-                            }
-                        }
-                    }
-                }
-
-                for (let p of parasites) {
-                    ctx.fillStyle = p.color;
-                    ctx.beginPath(); ctx.arc(p.x, p.y, 8, 0, Math.PI * 2); ctx.fill();
-
-                    ctx.fillStyle = '#222';
-                    ctx.fillRect(p.x - 12, p.y - 18, 24, 4);
-                    ctx.fillStyle = '#ff3366';
-                    ctx.fillRect(p.x - 12, p.y - 18, (p.hp / p.maxHp) * 24, 4);
-                }
-
-                for (let proj of projectiles) {
-                    ctx.fillStyle = '#ffffff';
-                    ctx.beginPath(); ctx.arc(proj.x, proj.y, 3, 0, Math.PI * 2); ctx.fill();
-                }
+                ctx.moveTo(0, y);
+                ctx.lineTo(canvas.width, y);
+                ctx.stroke();
             }
+
+            ctx.strokeStyle = lineColor; 
+            ctx.lineWidth = 3;
+            ctx.lineJoin = 'round';
+            ctx.beginPath();
+            
+            let xStep = canvas.width / (dataPoints.length - 1);
+            
+            for(let i = 0; i < dataPoints.length; i++) {
+                let x = i * xStep;
+                let y = canvas.height - ((dataPoints[i] / 100) * canvas.height); 
+                
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+
+            ctx.lineTo(canvas.width, canvas.height);
+            ctx.lineTo(0, canvas.height);
+            ctx.closePath();
+            
+            let gradientColor = lineColor === '#00f0ff' ? 'rgba(0, 240, 255, 0.2)' : 
+                                lineColor === '#ff3366' ? 'rgba(255, 51, 102, 0.2)' : 
+                                'rgba(57, 255, 20, 0.2)';
+            
+            let gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            gradient.addColorStop(0, gradientColor);
+            gradient.addColorStop(1, 'rgba(11, 12, 16, 0)');
+            
+            ctx.fillStyle = gradient;
+            ctx.fill();
         }
 
-        function loop() {
-            update();
-            draw();
-            requestAnimationFrame(loop);
-        }
-        loop();
+        // Auto-Refresh Health when returning from a module
+        window.addEventListener('pageshow', function() {
+            healthData.physical = parseInt(localStorage.getItem('health_physical')) || 30;
+            healthData.mental = parseInt(localStorage.getItem('health_mental')) || 30;
+            updateBars();
+            document.getElementById('charts-section').style.display = 'none';
+            document.getElementById('diagnostic-output').innerHTML = "> System on standby.<br>> No active alerts detected in local environment.<br>> Awaiting command...";
+            document.getElementById('diagnostic-output').style.borderLeftColor = "var(--panel-border)";
+        });
     </script>
 </body>
 </html>
