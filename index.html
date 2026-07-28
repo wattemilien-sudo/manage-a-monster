@@ -5,74 +5,108 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Master Health Dashboard</title>
     <style>
+        /* --- CSS Variables for Sci-Fi Theme --- */
+        :root {
+            --bg-color: #0b0c10;
+            --panel-bg: #151821;
+            --panel-border: #2a2e3d;
+            --text-main: #e0e6ed;
+            --text-muted: #8892b0;
+            --cyan: #00f0ff;
+            --cyan-glow: rgba(0, 240, 255, 0.3);
+            --green: #39ff14;
+            --yellow: #ffcc00;
+            --red: #ff3366;
+        }
+
+        /* --- Global Styles --- */
         body {
-            background-color: #0d0e15;
-            color: #e0e6ed;
-            font-family: monospace;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: 'Courier New', Courier, monospace;
             margin: 0;
-            padding: 20px;
+            padding: 30px 20px;
             display: flex;
             justify-content: center;
+            line-height: 1.6;
         }
 
         .dashboard-container {
             width: 100%;
-            max-width: 900px;
+            max-width: 950px;
             display: flex;
             flex-direction: column;
-            gap: 20px;
+            gap: 25px;
+        }
+
+        /* --- Panels & Labels --- */
+        .panel {
+            background: var(--panel-bg);
+            border: 1px solid var(--panel-border);
+            padding: 20px;
+            border-radius: 4px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        }
+
+        .label {
+            display: inline-block;
+            padding: 6px 12px;
+            margin-bottom: 10px;
+            font-weight: bold;
+            font-size: 14px;
+            background: #0b0c10;
+            border: 1px solid var(--panel-border);
+            color: var(--cyan);
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
 
         /* --- Health Bars Section --- */
         .health-block {
-            margin-bottom: 15px;
+            margin-bottom: 20px;
         }
-
-        .label {
-            border: 1px solid #444;
-            display: inline-block;
-            padding: 5px 15px;
-            margin-bottom: 5px;
-            font-weight: bold;
-            background: #141622;
+        .health-block:last-child {
+            margin-bottom: 0;
         }
 
         .bar-container {
-            border: 2px solid #333;
-            background: #1a1c29;
-            height: 35px;
+            border: 1px solid #333;
+            background: #0b0c10;
+            height: 25px;
             position: relative;
             display: flex;
             align-items: center;
+            border-radius: 2px;
+            overflow: hidden;
         }
 
         .bar-container .min, .bar-container .max {
             position: absolute;
-            top: -20px;
+            top: -22px;
             font-size: 12px;
-            color: #888;
+            color: var(--text-muted);
         }
-        
         .bar-container .min { left: 0; }
         .bar-container .max { right: 0; }
 
         .bar-fill {
             height: 100%;
-            background: #39ff14;
             width: 100%;
-            transition: width 1s ease-in-out, background-color 1s ease;
+            background: var(--green);
+            transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.8s ease;
+            box-shadow: 0 0 10px rgba(57, 255, 20, 0.5);
         }
 
         /* --- Middle Layout (Split Section) --- */
         .middle-layout {
             display: flex;
-            gap: 20px;
+            gap: 25px;
+            flex-wrap: wrap;
         }
-        
         .left-col, .right-col {
             flex: 1;
+            min-width: 300px;
         }
-
         .right-col {
             display: flex;
             flex-direction: column;
@@ -81,113 +115,137 @@
 
         /* --- Diagnostic Tools --- */
         .diagnostic-btn {
-            background: #141622;
-            color: #e0e6ed;
-            border: 1px solid #444;
-            padding: 10px;
-            text-align: left;
+            background: rgba(0, 240, 255, 0.05);
+            color: var(--cyan);
+            border: 1px solid var(--cyan);
+            padding: 12px;
+            text-align: center;
             font-family: inherit;
-            font-size: 14px;
+            font-size: 15px;
+            font-weight: bold;
+            text-transform: uppercase;
             cursor: pointer;
-            transition: 0.2s;
+            transition: all 0.3s ease;
+            letter-spacing: 2px;
         }
 
         .diagnostic-btn:hover {
-            border-color: #00f0ff;
-            color: #00f0ff;
-            background: #232635;
+            background: var(--cyan);
+            color: #000;
+            box-shadow: 0 0 15px var(--cyan-glow);
         }
 
         .diagnostic-box {
-            border: 1px solid #444;
-            background: #1a1c29;
+            background: #0b0c10;
+            border: 1px solid var(--panel-border);
             padding: 15px;
-            min-height: 80px;
+            min-height: 100px;
             font-size: 14px;
-            line-height: 1.5;
-            color: #888;
+            color: var(--text-muted);
+            border-left: 3px solid var(--panel-border);
+            transition: border-color 0.3s ease;
         }
 
         /* --- Charts Section --- */
         .charts-container {
-            display: none; /* Hidden until diagnostic runs */
-            border: 1px solid #444;
-            padding: 15px;
-            background: #1a1c29;
+            display: none; 
+            animation: fadeIn 0.5s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
         .charts-header {
-            margin-top: 0;
-            margin-bottom: 15px;
-            font-size: 14px;
-            border-bottom: 1px solid #333;
-            padding-bottom: 5px;
+            margin: 0 0 15px 0;
+            font-size: 12px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            border-bottom: 1px dashed var(--panel-border);
+            padding-bottom: 8px;
         }
 
         .charts-flex {
             display: flex;
             gap: 20px;
+            flex-wrap: wrap;
         }
 
         .chart-box {
             flex: 1;
-            text-align: center;
+            min-width: 250px;
         }
-        
         .chart-box h4 {
             margin: 0 0 10px 0;
-            color: #888;
+            color: var(--cyan);
+            font-size: 14px;
+            text-transform: uppercase;
         }
-
         canvas.chart {
-            background: #141622;
-            border: 1px solid #333;
+            background: #0b0c10;
+            border: 1px solid var(--panel-border);
             width: 100%;
-            height: 150px;
+            height: 160px;
+            border-radius: 2px;
         }
 
         /* --- Modules Grid --- */
-        .modules-section-label {
-            border: 1px solid #444;
-            display: inline-block;
-            padding: 5px 15px;
-            background: #141622;
-            margin-bottom: 10px;
-        }
-
         .modules-grid {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 20px;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
         }
 
         .module-btn {
             aspect-ratio: 1 / 1;
-            background: #1a1c29;
-            border: 2px solid #333;
+            background: #0b0c10;
+            border: 1px solid var(--panel-border);
             cursor: pointer;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            color: #888;
-            transition: 0.2s;
+            color: var(--text-muted);
+            transition: all 0.2s ease-in-out;
             text-decoration: none;
-            font-family: monospace;
-            padding: 10px;
+            padding: 15px;
             text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .module-btn::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: linear-gradient(135deg, rgba(0, 240, 255, 0.1) 0%, transparent 100%);
+            opacity: 0;
+            transition: opacity 0.3s ease;
         }
 
         .module-btn:hover {
-            border-color: #00f0ff;
-            background: #232635;
-            color: #00f0ff;
-            box-shadow: 0 0 15px rgba(0, 240, 255, 0.2);
+            border-color: var(--cyan);
+            color: var(--cyan);
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0, 240, 255, 0.15);
+        }
+
+        .module-btn:hover::before {
+            opacity: 1;
         }
 
         .module-icon {
-            font-size: 32px;
-            margin-bottom: 10px;
+            font-size: 38px;
+            margin-bottom: 12px;
+            z-index: 1;
+        }
+        
+        .module-btn div:last-child {
+            z-index: 1;
+            font-size: 13px;
+            font-weight: bold;
         }
 
     </style>
@@ -197,11 +255,13 @@
     <div class="dashboard-container">
         
         <!-- Overall Health -->
-        <div class="health-block">
-            <div class="label">Overall health</div>
-            <div class="bar-container">
-                <span class="min">0</span><span class="max">100</span>
-                <div class="bar-fill" id="bar-overall"></div>
+        <div class="panel">
+            <div class="health-block">
+                <div class="label">System Core Health</div>
+                <div class="bar-container" style="margin-top: 15px;">
+                    <span class="min">0%</span><span class="max">100%</span>
+                    <div class="bar-fill" id="bar-overall"></div>
+                </div>
             </div>
         </div>
 
@@ -209,52 +269,52 @@
         <div class="middle-layout">
             
             <!-- Left Column: Specific Health -->
-            <div class="left-col">
-                <div class="health-block">
-                    <div class="label">Physical Health</div>
+            <div class="panel left-col">
+                <div class="label">Sub-Systems</div>
+                <div class="health-block" style="margin-top: 15px;">
+                    <div style="margin-bottom: 5px; font-size: 13px; color: #8892b0;">Physical Integrity</div>
                     <div class="bar-container">
-                        <span class="min">0</span><span class="max">100</span>
                         <div class="bar-fill" id="bar-physical"></div>
                     </div>
                 </div>
 
                 <div class="health-block">
-                    <div class="label">Mental Health</div>
+                    <div style="margin-bottom: 5px; font-size: 13px; color: #8892b0;">Mental Stability</div>
                     <div class="bar-container">
-                        <span class="min">0</span><span class="max">100</span>
                         <div class="bar-fill" id="bar-mental"></div>
                     </div>
                 </div>
             </div>
 
             <!-- Right Column: Diagnostics -->
-            <div class="right-col">
-                <button class="diagnostic-btn" onclick="runDiagnostic()">Run diagnostic</button>
+            <div class="panel right-col">
+                <div class="label">Diagnostics</div>
+                <button class="diagnostic-btn" onclick="runDiagnostic()">Initialize Scan</button>
                 <div class="diagnostic-box" id="diagnostic-output">
-                    System on standby. No active alerts.
+                    > System on standby.<br>> No active alerts detected in local environment.<br>> Awaiting command...
                 </div>
             </div>
 
         </div>
 
         <!-- Charts Section (Revealed on Diagnostic Run) -->
-        <div class="charts-container" id="charts-section">
-            <div class="charts-header">Show when click run diagnostic (last 10 min)</div>
+        <div class="panel charts-container" id="charts-section">
+            <div class="charts-header">Telemetry Logs (Last 10 Min)</div>
             <div class="charts-flex">
                 <div class="chart-box">
-                    <h4>Mental Health</h4>
+                    <h4>Mental Resonance</h4>
                     <canvas id="chart-mental" class="chart"></canvas>
                 </div>
                 <div class="chart-box">
-                    <h4>Physical Health</h4>
+                    <h4>Physical Vitality</h4>
                     <canvas id="chart-physical" class="chart"></canvas>
                 </div>
             </div>
         </div>
 
-        <!-- Modules Section (Linked to actual files) -->
-        <div>
-            <div class="modules-section-label">All modules</div>
+        <!-- Modules Section -->
+        <div class="panel">
+            <div class="label">Active Modules</div>
             <div class="modules-grid">
                 
                 <a href="Bone-fracture.html" class="module-btn">
@@ -264,7 +324,7 @@
                 
                 <a href="Mental%20health%20block%20buster.html" class="module-btn">
                     <div class="module-icon">🧩</div>
-                    <div>2. Mental Health<br>Block Buster</div>
+                    <div>2. Mental Block Buster</div>
                 </a>
                 
                 <a href="Happy-thoughts-module.html" class="module-btn">
@@ -304,8 +364,13 @@
             mental: parseInt(localStorage.getItem('health_mental')) || 100
         };
 
+        function getHealthColor(value) {
+            if (value > 60) return { bg: 'var(--green)', shadow: 'rgba(57, 255, 20, 0.5)' };
+            if (value > 30) return { bg: 'var(--yellow)', shadow: 'rgba(255, 204, 0, 0.5)' };
+            return { bg: 'var(--red)', shadow: 'rgba(255, 51, 102, 0.5)' };
+        }
+
         function updateBars() {
-            // Calculate overall health as average of physical and mental
             let overall = (healthData.physical + healthData.mental) / 2;
 
             const bars = {
@@ -316,12 +381,11 @@
 
             for (const [id, value] of Object.entries(bars)) {
                 let el = document.getElementById(id);
-                el.style.width = `${value}%`;
+                let colors = getHealthColor(value);
                 
-                // Change color based on health status
-                if (value > 60) el.style.backgroundColor = '#39ff14'; // Green
-                else if (value > 30) el.style.backgroundColor = '#ffcc00'; // Yellow
-                else el.style.backgroundColor = '#ff3366'; // Red
+                el.style.width = `${value}%`;
+                el.style.backgroundColor = colors.bg;
+                el.style.boxShadow = `0 0 10px ${colors.shadow}`;
             }
         }
 
@@ -369,62 +433,58 @@
         // Diagnostic Engine
         // -----------------------------------------------------------
         function runDiagnostic() {
-            // 1. Reveal Charts Section
             document.getElementById('charts-section').style.display = 'block';
-            
-            // 2. Select the output box
             let outputBox = document.getElementById('diagnostic-output');
 
-            // 3. Check which health bar is failing and pull a matching random problem
             if (healthData.physical < 50) {
                 let randomIssue = physicalPool[Math.floor(Math.random() * physicalPool.length)];
-                
+                outputBox.style.borderLeftColor = "var(--red)";
                 outputBox.innerHTML = 
-                    `<span style='color:#ff3366'><strong>ALERT:</strong> ${randomIssue.problem} (Physical Health Critical).</span><br>` +
-                    `<span style='color:#ffcc00'>${randomIssue.summary}</span>`;
+                    `<span style='color:var(--red)'><strong>[CRITICAL ALERT]</strong> ${randomIssue.problem}</span><br><br>` +
+                    `<span style='color:var(--text-muted)'>${randomIssue.summary}</span>`;
                 
-                drawTrendChart('chart-physical', [100, 95, 80, healthData.physical + 10, healthData.physical]);
-                drawTrendChart('chart-mental', [100, 90, 85, healthData.mental + 5, healthData.mental]);
+                drawTrendChart('chart-physical', [100, 95, 80, healthData.physical + 10, healthData.physical], '#ff3366');
+                drawTrendChart('chart-mental', [100, 90, 85, healthData.mental + 5, healthData.mental], '#00f0ff');
 
             } else if (healthData.mental < 50) {
                 let randomIssue = mentalPool[Math.floor(Math.random() * mentalPool.length)];
-                
+                outputBox.style.borderLeftColor = "var(--red)";
                 outputBox.innerHTML = 
-                    `<span style='color:#ff3366'><strong>ALERT:</strong> ${randomIssue.problem} (Mental Health Critical).</span><br>` +
-                    `<span style='color:#ffcc00'>${randomIssue.summary}</span>`;
+                    `<span style='color:var(--red)'><strong>[CRITICAL ALERT]</strong> ${randomIssue.problem}</span><br><br>` +
+                    `<span style='color:var(--text-muted)'>${randomIssue.summary}</span>`;
                 
-                drawTrendChart('chart-physical', [100, 95, 95, healthData.physical, healthData.physical]);
-                drawTrendChart('chart-mental', [100, 90, 70, healthData.mental + 10, healthData.mental]);
+                drawTrendChart('chart-physical', [100, 95, 95, healthData.physical, healthData.physical], '#00f0ff');
+                drawTrendChart('chart-mental', [100, 90, 70, healthData.mental + 10, healthData.mental], '#ff3366');
 
             } else {
-                // If everything is fine
+                outputBox.style.borderLeftColor = "var(--green)";
                 outputBox.innerHTML = 
-                    "<span style='color:#39ff14'><strong>SYSTEM NORMAL:</strong> All bio-metrics operating within acceptable parameters. No anomalies detected.</span>";
+                    `<span style='color:var(--green)'><strong>[SYSTEM NORMAL]</strong> All bio-metrics operating within acceptable parameters.</span><br><br>` +
+                    `<span style='color:var(--text-muted)'>No anomalies detected in the structural or neural grid.</span>`;
                 
-                // Draw steady charts
-                drawTrendChart('chart-physical', [100, 98, 100, 99, healthData.physical]);
-                drawTrendChart('chart-mental', [100, 99, 97, 100, healthData.mental]);
+                drawTrendChart('chart-physical', [100, 98, 100, 99, healthData.physical], '#39ff14');
+                drawTrendChart('chart-mental', [100, 99, 97, 100, healthData.mental], '#39ff14');
             }
         }
 
         // -----------------------------------------------------------
-        // FOR TESTING: Simulate taking damage
+        // Dev Hotkeys
         // -----------------------------------------------------------
         window.addEventListener('keydown', (e) => {
             if (e.key.toLowerCase() === 'p') {
-                healthData.physical = 35; // Drop health
+                healthData.physical = 35; 
                 localStorage.setItem('health_physical', healthData.physical);
                 updateBars();
-                alert("Simulated Physical Attack! Press 'Run diagnostic' to see the alert.");
+                alert("Simulated Physical Attack! Press 'Initialize Scan' to see the alert.");
             }
             if (e.key.toLowerCase() === 'm') {
-                healthData.mental = 35; // Drop mental health
+                healthData.mental = 35; 
                 localStorage.setItem('health_mental', healthData.mental);
                 updateBars();
-                alert("Simulated Mental Stress! Press 'Run diagnostic' to see the alert.");
+                alert("Simulated Mental Stress! Press 'Initialize Scan' to see the alert.");
             }
             if (e.key.toLowerCase() === 'h') {
-                healthData.physical = 100; // Heal
+                healthData.physical = 100; 
                 healthData.mental = 100;
                 localStorage.setItem('health_physical', 100);
                 localStorage.setItem('health_mental', 100);
@@ -433,7 +493,10 @@
             }
         });
 
-        function drawTrendChart(canvasId, dataPoints) {
+        // -----------------------------------------------------------
+        // Canvas Chart Drawing (Upgraded with Gradients)
+        // -----------------------------------------------------------
+        function drawTrendChart(canvasId, dataPoints, lineColor) {
             const canvas = document.getElementById(canvasId);
             const ctx = canvas.getContext('2d');
             
@@ -443,8 +506,8 @@
             
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            // Draw grid lines (horizontal)
-            ctx.strokeStyle = '#333';
+            // Draw grid lines
+            ctx.strokeStyle = '#1f293d';
             ctx.lineWidth = 1;
             for(let i = 0; i <= 5; i++) {
                 let y = (canvas.height / 5) * i;
@@ -455,33 +518,50 @@
             }
 
             // Draw the trend line
-            ctx.strokeStyle = '#00f0ff'; // Cyan sci-fi line
+            ctx.strokeStyle = lineColor; 
             ctx.lineWidth = 3;
             ctx.lineJoin = 'round';
             ctx.beginPath();
             
             let xStep = canvas.width / (dataPoints.length - 1);
+            let points = [];
             
             for(let i = 0; i < dataPoints.length; i++) {
                 let x = i * xStep;
-                // Invert Y because canvas draws top-down (0 is at top)
                 let y = canvas.height - ((dataPoints[i] / 100) * canvas.height); 
+                points.push({x, y});
                 
                 if (i === 0) ctx.moveTo(x, y);
                 else ctx.lineTo(x, y);
             }
             ctx.stroke();
+
+            // Fill gradient under the line
+            ctx.lineTo(canvas.width, canvas.height);
+            ctx.lineTo(0, canvas.height);
+            ctx.closePath();
+            
+            // Convert Hex to RGBA for gradient
+            let gradientColor = lineColor === '#00f0ff' ? 'rgba(0, 240, 255, 0.2)' : 
+                                lineColor === '#ff3366' ? 'rgba(255, 51, 102, 0.2)' : 
+                                'rgba(57, 255, 20, 0.2)';
+            
+            let gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            gradient.addColorStop(0, gradientColor);
+            gradient.addColorStop(1, 'rgba(11, 12, 16, 0)');
+            
+            ctx.fillStyle = gradient;
+            ctx.fill();
         }
 
-        // -----------------------------------------------------------
         // Auto-Refresh Health when returning from a module
-        // -----------------------------------------------------------
         window.addEventListener('pageshow', function() {
             healthData.physical = parseInt(localStorage.getItem('health_physical')) || 100;
             healthData.mental = parseInt(localStorage.getItem('health_mental')) || 100;
             updateBars();
             document.getElementById('charts-section').style.display = 'none';
-            document.getElementById('diagnostic-output').innerHTML = "System on standby. No active alerts.";
+            document.getElementById('diagnostic-output').innerHTML = "> System on standby.<br>> No active alerts detected in local environment.<br>> Awaiting command...";
+            document.getElementById('diagnostic-output').style.borderLeftColor = "var(--panel-border)";
         });
     </script>
 </body>
