@@ -1,7 +1,3 @@
-
-
-
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -333,29 +329,69 @@
         updateBars();
 
         // -----------------------------------------------------------
-        // Diagnostic Logic
+        // Diagnostic Logic Arrays (The "Pools")
+        // -----------------------------------------------------------
+        const physicalPool = [
+            {
+                problem: "Neuro-Toxin Buildup Detected",
+                summary: "Elevated foreign substance levels have triggered a system-wide alert. Initiate the Poison Protocol immediately to restore optimal physical function."
+            },
+            {
+                problem: "Cardiovascular Filter Clogged",
+                summary: "Particulate matter is obstructing the primary bio-valves. Rerouting circulatory pressure is required to dislodge the blockages."
+            },
+            {
+                problem: "Core Temperature Critical",
+                summary: "Thermal exhaust vents are failing to dissipate metabolic heat. Reduce system processing load and engage cooling protocols immediately."
+            },
+            {
+                problem: "Structural Integrity Compromised",
+                summary: "Micro-fractures detected in the skeletal support matrix. Engage the Bone Fracture module immediately to initiate osteoblast repair."
+            }
+        ];
+
+        const mentalPool = [
+            {
+                problem: "Positivity Matrix Depleted",
+                summary: "The neural network is running dangerously low on serotonin. Engaging the Happy Thoughts module is highly recommended to stabilize mood."
+            },
+            {
+                problem: "Synaptic Latency High",
+                summary: "Action potentials are firing much slower than acceptable thresholds. Recalibrating neurotransmitter relays is necessary to boost signal speed."
+            },
+            {
+                problem: "Cognitive Overload Detected",
+                summary: "The frontal lobe is processing too many concurrent trauma threads. Initiate the Trauma Sync or Block Buster module to clear the queue."
+            }
+        ];
+
+        // -----------------------------------------------------------
+        // Diagnostic Engine
         // -----------------------------------------------------------
         function runDiagnostic() {
             // 1. Reveal Charts Section
             document.getElementById('charts-section').style.display = 'block';
             
-            // 2. Evaluate current health instead of changing it
+            // 2. Select the output box
             let outputBox = document.getElementById('diagnostic-output');
 
+            // 3. Check which health bar is failing and pull a matching random problem
             if (healthData.physical < 50) {
-                // If physical health is actually low
+                let randomIssue = physicalPool[Math.floor(Math.random() * physicalPool.length)];
+                
                 outputBox.innerHTML = 
-                    "<span style='color:#ff3366'><strong>ALERT:</strong> Foreign toxins or trauma detected (Physical Health Critical).</span><br>" +
-                    "<span style='color:#ffcc00'>Immediate physical degradation recorded. Advise initiating module immediately.</span>";
+                    `<span style='color:#ff3366'><strong>ALERT:</strong> ${randomIssue.problem} (Physical Health Critical).</span><br>` +
+                    `<span style='color:#ffcc00'>${randomIssue.summary}</span>`;
                 
                 drawTrendChart('chart-physical', [100, 95, 80, healthData.physical + 10, healthData.physical]);
                 drawTrendChart('chart-mental', [100, 90, 85, healthData.mental + 5, healthData.mental]);
 
             } else if (healthData.mental < 50) {
-                // If mental health is actually low
+                let randomIssue = mentalPool[Math.floor(Math.random() * mentalPool.length)];
+                
                 outputBox.innerHTML = 
-                    "<span style='color:#ff3366'><strong>ALERT:</strong> Severe cognitive stress detected.</span><br>" +
-                    "<span style='color:#ffcc00'>Advise initiating cognitive maintenance module immediately.</span>";
+                    `<span style='color:#ff3366'><strong>ALERT:</strong> ${randomIssue.problem} (Mental Health Critical).</span><br>` +
+                    `<span style='color:#ffcc00'>${randomIssue.summary}</span>`;
                 
                 drawTrendChart('chart-physical', [100, 95, 95, healthData.physical, healthData.physical]);
                 drawTrendChart('chart-mental', [100, 90, 70, healthData.mental + 10, healthData.mental]);
@@ -380,6 +416,12 @@
                 localStorage.setItem('health_physical', healthData.physical);
                 updateBars();
                 alert("Simulated Physical Attack! Press 'Run diagnostic' to see the alert.");
+            }
+            if (e.key.toLowerCase() === 'm') {
+                healthData.mental = 35; // Drop mental health
+                localStorage.setItem('health_mental', healthData.mental);
+                updateBars();
+                alert("Simulated Mental Stress! Press 'Run diagnostic' to see the alert.");
             }
             if (e.key.toLowerCase() === 'h') {
                 healthData.physical = 100; // Heal
@@ -430,7 +472,8 @@
             }
             ctx.stroke();
         }
-		// -----------------------------------------------------------
+
+        // -----------------------------------------------------------
         // Auto-Refresh Health when returning from a module
         // -----------------------------------------------------------
         window.addEventListener('pageshow', function() {
