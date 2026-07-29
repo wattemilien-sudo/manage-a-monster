@@ -140,14 +140,22 @@
             updateUI();
         }
 
+        function damagePhysical() {
+            if (gameState !== 'playing') return;
+            let currentPhysical = parseInt(localStorage.getItem('health_physical')) || 100;
+            localStorage.setItem('health_physical', Math.max(0, currentPhysical - 25));
+            createDestructionParticles(300, 200, '#ff9900'); // Warning physical damage effect
+        }
+
         function updateUI() {
             if (gameState === 'playing') {
                 document.getElementById('instruction-text').innerHTML = `
-                    <strong>PROTOCOL ACTIVE:</strong> Click to destroy <span style="color:#ff3366;">BAD</span> thoughts. Allow <span style="color:#39ff14;">GOOD</span> thoughts to enter the mind!
+                    <strong>PROTOCOL ACTIVE:</strong> Click to destroy <span style="color:#ff3366;">BAD</span> thoughts. Allow <span style="color:#39ff14;">GOOD</span> thoughts to enter the mind! Press <strong>P</strong> to drain physical health.
                 `;
                 document.getElementById('controls-panel').innerHTML = `
-                    <div>Good Thoughts Absorbed: <strong style="color:#39ff14;">${goodAbsorbed}/${WIN_TARGET}</strong></div>
-                    <div>Bad Thoughts Absorbed: <strong style="color:#ff3366;">${badAbsorbed}/${LOSE_LIMIT}</strong></div>
+                    <div>Good: <strong style="color:#39ff14;">${goodAbsorbed}/${WIN_TARGET}</strong></div>
+                    <div>Bad: <strong style="color:#ff3366;">${badAbsorbed}/${LOSE_LIMIT}</strong></div>
+                    <button onclick="damagePhysical()" style="background: #662200; border-color: #ff9900; color: #ff9900;">Drain Physical (P)</button>
                     <button onclick="resetToIdle()" style="background: #551111;">Abort Protocol</button>
                 `;
             } else if (gameState === 'win') {
@@ -168,10 +176,8 @@
         }
 
         function spawnThought() {
-            // 60% chance for a bad thought (needs to be challenging)
             let isBad = Math.random() > 0.4; 
             
-            // Random edge: 0=Top, 1=Right, 2=Bottom, 3=Left
             let side = Math.floor(Math.random() * 4);
             let tx, ty;
             
@@ -183,12 +189,10 @@
             let wordList = isBad ? badWords : goodWords;
             let word = wordList[Math.floor(Math.random() * wordList.length)];
 
-            // Calculate trajectory towards the center (300, 200)
             let dx = 300 - tx;
             let dy = 200 - ty;
             let dist = Math.hypot(dx, dy);
             
-            // Speed variance
             let speed = isBad ? (0.6 + Math.random() * 0.4) : (0.4 + Math.random() * 0.3);
 
             thoughts.push({
@@ -222,22 +226,20 @@
             const mouseX = e.clientX - rect.left;
             const mouseY = e.clientY - rect.top;
 
-            // Iterate backwards to safely remove from array
             for (let i = thoughts.length - 1; i >= 0; i--) {
                 let t = thoughts[i];
                 let dist = Math.hypot(mouseX - t.x, mouseY - t.y);
                 
-                // Generous click hitbox (radius + 10)
                 if (dist <= t.radius + 10) {
                     let color = t.type === 'bad' ? '#ff3366' : '#39ff14';
                     createDestructionParticles(t.x, t.y, color);
                     thoughts.splice(i, 1);
-                    break; // Only destroy one thought per click
+                    break;
                 }
             }
         });
 
-        // Spacebar listener for restarting
+        // Keyboard listeners for Spacebar and 'P' key
         window.addEventListener('keydown', (e) => {
             if (e.code === 'Space') {
                 if (gameState === 'idle') return;
@@ -247,6 +249,12 @@
                     resetToIdle();
                 }
             }
+            if (e.code === 'KeyP' || e.key.toLowerCase() === 'p') {
+                if (gameState === 'playing') {
+                    e.preventDefault();
+                    damagePhysical();
+                }
+            }
         });
 
         // Game Loop Update logic
@@ -254,25 +262,21 @@
             let deltaTime = currentTime - lastTime;
             lastTime = currentTime;
             
-            // Cap delta time to prevent massive jumps if tab is unfocused
             if (deltaTime > 100) deltaTime = 16; 
 
             if (gameState === 'playing') {
                 spawnTimer -= deltaTime;
                 if (spawnTimer <= 0) {
                     spawnThought();
-                    // Slowly increase spawn rate as game progresses
                     spawnRate = Math.max(500, 1200 - (goodAbsorbed * 60));
                     spawnTimer = spawnRate;
                 }
 
                 for (let i = thoughts.length - 1; i >= 0; i--) {
                     let t = thoughts[i];
-                    // Normalize movement to 60 FPS standard (approx 16ms per frame)
                     t.x += t.vx * (deltaTime / 16);
                     t.y += t.vy * (deltaTime / 16);
 
-                    // Check if it reached the meditator's mind (center of canvas)
                     let distToCenter = Math.hypot(300 - t.x, 200 - t.y);
                     if (distToCenter < 40) {
                         if (t.type === 'good') {
@@ -287,22 +291,20 @@
                         
                         updateUI();
 
-                        // Check Win/Loss conditions and update Master Dashboard Health
                         if (badAbsorbed >= LOSE_LIMIT) {
                             gameState = 'lose';
                             let currentMental = parseInt(localStorage.getItem('health_mental')) || 100;
-                            localStorage.setItem('health_mental', Math.max(0, currentMental - 25)); // Deal 25 mental damage
+                            localStorage.setItem('health_mental', Math.max(0, currentMental - 25));
                             updateUI();
                         } else if (goodAbsorbed >= WIN_TARGET) {
                             gameState = 'win';
                             let currentMental = parseInt(localStorage.getItem('health_mental')) || 30;
-                            localStorage.setItem('health_mental', Math.min(100, currentMental + 25)); // Dynamically adds 25 health
+                            localStorage.setItem('health_mental', Math.min(100, currentMental + 25));
                             updateUI();
                         }
                     }
                 }
 
-                // Update particles
                 for (let i = particles.length - 1; i >= 0; i--) {
                     let p = particles[i];
                     p.x += p.vx * (deltaTime / 16);
@@ -317,7 +319,6 @@
         function draw() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            // Draw Background grid lines
             ctx.strokeStyle = '#222';
             ctx.lineWidth = 1;
             for(let i=0; i<canvas.width; i+=40) { ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, canvas.height); ctx.stroke(); }
@@ -333,7 +334,6 @@
                 ctx.fillText('Click start to begin filtering thoughts.', canvas.width / 2, canvas.height / 2 + 50);
             } 
             else if (gameState === 'playing') {
-                // Draw thoughts
                 for (let t of thoughts) {
                     ctx.fillStyle = '#1a1c29';
                     ctx.strokeStyle = t.type === 'bad' ? '#ff3366' : '#39ff14';
@@ -351,7 +351,6 @@
                     ctx.fillText(t.text, t.x, t.y);
                 }
 
-                // Draw Particles
                 for (let p of particles) {
                     ctx.globalAlpha = p.life;
                     ctx.fillStyle = p.color;
@@ -362,12 +361,10 @@
                 ctx.globalAlpha = 1.0;
             }
 
-            // Always draw the Meditator in center
             if (gameState !== 'idle') {
                 drawMeditator(300, 200);
             }
 
-            // Overlay screens for win/lose
             if (gameState === 'win') {
                 ctx.fillStyle = 'rgba(20, 22, 34, 0.85)';
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -398,29 +395,24 @@
             }
         }
 
-        // Helper function to draw the person meditating
         function drawMeditator(x, y) {
-            // Aura / Forcefield
             ctx.strokeStyle = '#00f0ff';
             ctx.lineWidth = 1;
             ctx.setLineDash([5, 5]);
             
-            // Make aura pulse slightly based on good thoughts
             let pulse = Math.sin(performance.now() / 300) * 3;
             let auraRadius = 45 + (goodAbsorbed * 2) + pulse;
 
             ctx.beginPath();
             ctx.arc(x, y, auraRadius, 0, Math.PI * 2);
             ctx.stroke();
-            ctx.setLineDash([]); // Reset dash
+            ctx.setLineDash([]); 
 
-            // Person Head
             ctx.fillStyle = '#e0e6ed';
             ctx.beginPath();
             ctx.arc(x, y - 20, 12, 0, Math.PI * 2);
             ctx.fill();
 
-            // Shoulders/Torso
             ctx.beginPath();
             ctx.moveTo(x - 15, y - 5);
             ctx.quadraticCurveTo(x, y - 10, x + 15, y - 5);
@@ -428,26 +420,22 @@
             ctx.lineTo(x - 10, y + 15);
             ctx.fill();
 
-            // Crossed Legs (Lotus position shape)
             ctx.beginPath();
             ctx.ellipse(x, y + 18, 22, 8, 0, 0, Math.PI * 2);
             ctx.fill();
 
-            // Floating decorative orb in center (Mind core)
             ctx.fillStyle = '#39ff14';
             ctx.beginPath();
             ctx.arc(x, y, 4, 0, Math.PI * 2);
             ctx.fill();
         }
 
-        // Main Loop
         function loop(timestamp) {
             update(timestamp);
             draw();
             requestAnimationFrame(loop);
         }
         
-        // Start engine
         requestAnimationFrame(loop);
         draw();
     </script>
