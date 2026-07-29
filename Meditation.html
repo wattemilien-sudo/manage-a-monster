@@ -140,10 +140,17 @@
             updateUI();
         }
 
+        function damagePhysical() {
+            if (gameState !== 'playing') return;
+            let currentPhysical = parseInt(localStorage.getItem('health_physical')) || 100;
+            localStorage.setItem('health_physical', Math.max(0, currentPhysical - 25));
+            createDestructionParticles(300, 200, '#ff9900');
+        }
+
         function updateUI() {
             if (gameState === 'playing') {
                 document.getElementById('instruction-text').innerHTML = `
-                    <strong>PROTOCOL ACTIVE:</strong> Click to destroy <span style="color:#ff3366;">BAD</span> thoughts. Allow <span style="color:#39ff14;">GOOD</span> thoughts to enter the mind!
+                    <strong>PROTOCOL ACTIVE:</strong> Click to destroy <span style="color:#ff3366;">BAD</span> thoughts. Allow <span style="color:#39ff14;">GOOD</span> thoughts to enter the mind! Press <strong>P</strong> to drain physical health.
                 `;
                 document.getElementById('controls-panel').innerHTML = `
                     <div>Good: <strong style="color:#39ff14;">${goodAbsorbed}/${WIN_TARGET}</strong></div>
@@ -231,7 +238,7 @@
             }
         });
 
-        // Keyboard listener for Spacebar
+        // Keyboard listeners for Spacebar and 'P' key
         window.addEventListener('keydown', (e) => {
             if (e.code === 'Space') {
                 if (gameState === 'idle') return;
@@ -239,6 +246,12 @@
                 if (gameState === 'win' || gameState === 'lose') {
                     e.preventDefault();
                     resetToIdle();
+                }
+            }
+            if (e.code === 'KeyP' || e.key.toLowerCase() === 'p') {
+                if (gameState === 'playing') {
+                    e.preventDefault();
+                    damagePhysical();
                 }
             }
         });
