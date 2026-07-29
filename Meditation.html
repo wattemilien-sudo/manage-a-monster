@@ -140,22 +140,14 @@
             updateUI();
         }
 
-        function damagePhysical() {
-            if (gameState !== 'playing') return;
-            let currentPhysical = parseInt(localStorage.getItem('health_physical')) || 100;
-            localStorage.setItem('health_physical', Math.max(0, currentPhysical - 25));
-            createDestructionParticles(300, 200, '#ff9900'); // Warning physical damage effect
-        }
-
         function updateUI() {
             if (gameState === 'playing') {
                 document.getElementById('instruction-text').innerHTML = `
-                    <strong>PROTOCOL ACTIVE:</strong> Click to destroy <span style="color:#ff3366;">BAD</span> thoughts. Allow <span style="color:#39ff14;">GOOD</span> thoughts to enter the mind! Press <strong>P</strong> to drain physical health.
+                    <strong>PROTOCOL ACTIVE:</strong> Click to destroy <span style="color:#ff3366;">BAD</span> thoughts. Allow <span style="color:#39ff14;">GOOD</span> thoughts to enter the mind!
                 `;
                 document.getElementById('controls-panel').innerHTML = `
                     <div>Good: <strong style="color:#39ff14;">${goodAbsorbed}/${WIN_TARGET}</strong></div>
                     <div>Bad: <strong style="color:#ff3366;">${badAbsorbed}/${LOSE_LIMIT}</strong></div>
-                    <button onclick="damagePhysical()" style="background: #662200; border-color: #ff9900; color: #ff9900;">Drain Physical (P)</button>
                     <button onclick="resetToIdle()" style="background: #551111;">Abort Protocol</button>
                 `;
             } else if (gameState === 'win') {
@@ -239,7 +231,7 @@
             }
         });
 
-        // Keyboard listeners for Spacebar and 'P' key
+        // Keyboard listener for Spacebar
         window.addEventListener('keydown', (e) => {
             if (e.code === 'Space') {
                 if (gameState === 'idle') return;
@@ -247,12 +239,6 @@
                 if (gameState === 'win' || gameState === 'lose') {
                     e.preventDefault();
                     resetToIdle();
-                }
-            }
-            if (e.code === 'KeyP' || e.key.toLowerCase() === 'p') {
-                if (gameState === 'playing') {
-                    e.preventDefault();
-                    damagePhysical();
                 }
             }
         });
