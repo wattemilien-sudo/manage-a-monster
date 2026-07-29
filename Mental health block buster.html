@@ -3,22 +3,45 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Biomechanical Logistics: Pattern Shift Module</title>
+    <title>Biomechanical Logistics: Block Blaster</title>
     <style>
         body {
-            background-color: #0d0e15;
+            background-color: #0d0e15; 
             color: #e0e6ed;
             font-family: monospace;
             display: flex;
             flex-direction: column;
             align-items: center;
-            margin-top: 20px;
+            margin-top: 40px;
         }
+        
+        /* --- Return Button (Centered, Cyan outline) --- */
+        .return-btn {
+            background: #141622;
+            color: #00f0ff;
+            border: 1px solid #00f0ff;
+            padding: 10px 20px;
+            text-decoration: none;
+            font-weight: bold;
+            border-radius: 4px;
+            transition: 0.2s;
+            font-family: inherit;
+            margin-bottom: 25px;
+        }
+
+        .return-btn:hover {
+            background: #232635;
+            box-shadow: 0 0 15px rgba(0, 240, 255, 0.4);
+            color: #00f0ff;
+        }
+
         canvas {
             background-color: #1a1c29;
             border: 2px solid #333;
             box-shadow: 0 0 20px rgba(0, 240, 255, 0.2);
+            cursor: pointer;
         }
+        
         .controls {
             margin-top: 15px;
             display: flex;
@@ -32,6 +55,7 @@
             justify-content: center;
             min-height: 40px;
         }
+        
         button {
             background: #333;
             color: white;
@@ -43,9 +67,11 @@
             font-weight: bold;
             transition: 0.2s;
         }
+        
         button:hover { background: #444; border-color: #00f0ff; color: #00f0ff; }
+        
         .instructions {
-            color: #ffcc00;
+            color: #00f0ff;
             max-width: 650px;
             text-align: center;
             margin-bottom: 10px;
@@ -55,13 +81,17 @@
 </head>
 <body>
 
-    <h2>Grid Module: Pattern Shift (Cognitive Reappraisal)</h2>
+    <!-- Dashboard Return Button -->
+    <a href="index.html" class="return-btn">Return to Dashboard</a>
+
+    <h2>Grid Module: Mental Health Block Blaster</h2>
+    
     <div class="instructions" id="instruction-text">
-        <strong>SYSTEM IDLE:</strong> Awaiting command to initiate cognitive reframing protocol.
+        <strong>SYSTEM IDLE:</strong> Smash negative stress blocks to purify cognitive patterns.
     </div>
 
     <div class="controls" id="controls-panel">
-        <button id="btn-reframe" onclick="startPatternShift()">Reframe thoughts</button>
+        <button id="btn-start" onclick="startGame()">Initialize Blaster Protocol</button>
     </div>
 
     <br>
@@ -71,179 +101,158 @@
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
         
-        // Game States: 'idle', 'serve', 'playing', 'levelTransition', 'win', 'gameOver'
+        // Game States: 'idle', 'playing', 'win', 'lose'
         let gameState = 'idle'; 
-        let attempts = 3;
-        let score = 0;
-        let totalBlocks = 0;
-        let currentLevel = 1;
 
-        // Entities
-        const paddle = { x: 260, y: 370, w: 80, h: 10, dx: 0, speed: 7 };
-        const ball = { x: 300, y: 360, r: 6, dx: 0, dy: 0, baseSpeed: 4.0 };
+        let paddle = {
+            x: 250,
+            y: 360,
+            width: 100,
+            height: 12,
+            dx: 0,
+            speed: 7
+        };
 
-        // Keyboard tracking
+        let ball = {
+            x: 300,
+            y: 345,
+            radius: 7,
+            speed: 4,
+            dx: 3,
+            dy: -3
+        };
+
+        let bricks = [];
+        const brickRowCount = 4;
+        const brickColumnCount = 7;
+        const brickWidth = 72;
+        const brickHeight = 20;
+        const brickPadding = 10;
+        const brickOffsetTop = 40;
+        const brickOffsetLeft = 31;
+
+        const words = ["STRESS", "ANXIETY", "BURNOUT", "DOUBT", "FEAR", "PANIC", "TENSION"];
+
         let rightPressed = false;
         let leftPressed = false;
 
-        // Block configurations
-        const blockRowCount = 4;
-        const blockColumnCount = 5;
-        const blockWidth = 90;
-        const blockHeight = 25;
-        const blockPadding = 18;
-        const blockOffsetTop = 50;
-        const blockOffsetLeft = 40;
-
-        let blocks = [];
-        const blockLabels = [
-            "Failure", "Useless", "Despair", "Guilt", "Flawed",
-            "Anxiety", "Doubt", "Panic", "Stupid", "Weak",
-            "Hopeless", "Broken", "Ruined", "Alone", "Lost",
-            "Burden", "Rejected", "Fraud", "Hated", "Toxic"
-        ];
+        function initBricks() {
+            bricks = [];
+            for (let c = 0; c < brickColumnCount; c++) {
+                bricks[c] = [];
+                for (let r = 0; r < brickRowCount; r++) {
+                    let randomWord = words[Math.floor(Math.random() * words.length)];
+                    bricks[c][r] = { 
+                        x: 0, 
+                        y: 0, 
+                        status: 1, 
+                        text: randomWord 
+                    };
+                }
+            }
+        }
 
         function resetToIdle() {
             gameState = 'idle';
             document.getElementById('instruction-text').innerHTML = `
-                <strong>SYSTEM IDLE:</strong> Awaiting command to initiate cognitive reframing protocol.
+                <strong>SYSTEM IDLE:</strong> Smash negative stress blocks to purify cognitive patterns.
             `;
             document.getElementById('controls-panel').innerHTML = `
-                <button id="btn-reframe" onclick="startPatternShift()">Reframe thoughts</button>
+                <button id="btn-start" onclick="startGame()">Initialize Blaster Protocol</button>
             `;
         }
 
-        function initBlocks() {
-            blocks = [];
-            score = 0;
-            totalBlocks = blockRowCount * blockColumnCount;
-            
-            // Offset the label index so Level 2 looks slightly different
-            let labelIndex = currentLevel === 1 ? 0 : 5; 
-            
-            for (let c = 0; c < blockColumnCount; c++) {
-                blocks[c] = [];
-                for (let r = 0; r < blockRowCount; r++) {
-                    blocks[c][r] = { 
-                        x: 0, 
-                        y: 0, 
-                        status: 1, 
-                        label: blockLabels[labelIndex % blockLabels.length] 
-                    };
-                    labelIndex++;
-                }
-            }
-        }
-
-        function resetBall() {
-            // Level 1: Base Speed. Level 2: 40% Faster (1.4x)
-            let speedMultiplier = currentLevel === 1 ? 1.0 : 1.4;
-            let currentSpeed = ball.baseSpeed * speedMultiplier;
-            
-            ball.x = paddle.x + paddle.w / 2;
-            ball.y = paddle.y - ball.r - 1;
-            ball.dx = currentSpeed * (Math.random() > 0.5 ? 1 : -1);
-            ball.dy = -currentSpeed;
-        }
-
-        function startPatternShift() {
-            attempts = 3;
-            currentLevel = 1;
-            initBlocks();
-            paddle.x = (canvas.width - paddle.w) / 2;
-            gameState = 'serve';
-            resetBall();
+        function startGame() {
+            gameState = 'playing';
+            paddle.x = 250;
+            ball.x = 300;
+            ball.y = 345;
+            ball.dx = 3 * (Math.random() > 0.5 ? 1 : -1);
+            ball.dy = -4;
+            initBricks();
             updateUI();
         }
 
         function updateUI() {
-            if (gameState === 'serve' || gameState === 'playing') {
+            if (gameState === 'playing') {
                 document.getElementById('instruction-text').innerHTML = `
-                    <strong>PROTOCOL ACTIVE (Level ${currentLevel}):</strong> Use <strong>Arrow Keys</strong> to move. Break the distorted thoughts!
+                    <strong>PROTOCOL ACTIVE:</strong> Use <strong>Arrow Keys</strong> or <strong>A / D</strong> to control paddle. Clear all stress blocks!
                 `;
                 document.getElementById('controls-panel').innerHTML = `
-                    <div>Level: <strong style="color:#ffcc00;">${currentLevel}</strong></div>
-                    <div>Attempts Remaining: <strong style="color:#00f0ff;">${attempts}</strong></div>
-                    <div>Blocks Reframed: <strong style="color:#39ff14;">${score}/${totalBlocks}</strong></div>
-                `;
-            } else if (gameState === 'levelTransition') {
-                document.getElementById('instruction-text').innerHTML = `
-                    <strong style="color:#00f0ff;">LEVEL 1 CLEARED:</strong> Prepare for increased cognitive load.
-                `;
-                document.getElementById('controls-panel').innerHTML = `
-                    <div style="color:#00f0ff; font-weight:bold;">Press SPACEBAR to start Level 2</div>
+                    <div>Status: <strong style="color:#00f0ff;">Purifying Cognitive Matrix</strong></div>
+                    <button onclick="resetToIdle()" style="background: #551111;">Abort Protocol</button>
                 `;
             } else if (gameState === 'win') {
                 document.getElementById('instruction-text').innerHTML = `
-                    <strong style="color:#39ff14;">PROTOCOL SUCCESSFUL:</strong> All distorted thoughts reframed. Press <strong>SPACEBAR</strong> to return to menu.
+                    <strong style="color:#39ff14;">PROTOCOL SUCCESSFUL:</strong> Stress blocks eradicated. Mental health upgraded. Press <strong>SPACEBAR</strong> to replay.
                 `;
                 document.getElementById('controls-panel').innerHTML = `
-                    <div style="color:#39ff14; font-weight:bold;">MINDSET STABILIZED</div>
+                    <div style="color:#39ff14; font-weight:bold;">+25 MENTAL HEALTH RESTORED</div>
                 `;
-            } else if (gameState === 'gameOver') {
+            } else if (gameState === 'lose') {
                 document.getElementById('instruction-text').innerHTML = `
-                    <strong style="color:#ff3366;">PROTOCOL FAILED:</strong> Overwhelmed by thought loops. Press <strong>SPACEBAR</strong> to return to menu.
+                    <strong style="color:#ff3366;">PROTOCOL FAILED:</strong> Core breach detected. Press <strong>SPACEBAR</strong> to retry.
                 `;
                 document.getElementById('controls-panel').innerHTML = `
-                    <div style="color:#ff3366; font-weight:bold;">SYSTEM OVERLOAD</div>
+                    <div style="color:#ff3366; font-weight:bold;">SYSTEM STRESS UNCHALLENGED</div>
                 `;
             }
         }
 
-        // Event Listeners
-        window.addEventListener('keydown', (e) => {
-            if (e.key === 'Right' || e.key === 'ArrowRight' || e.key === 'd') {
-                rightPressed = true;
-            } else if (e.key === 'Left' || e.key === 'ArrowLeft' || e.key === 'a') {
-                leftPressed = true;
-            }
-            
+        // Keyboard controls
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'ArrowRight' || e.code === 'KeyD') rightPressed = true;
+            if (e.code === 'ArrowLeft' || e.code === 'KeyA') leftPressed = true;
             if (e.code === 'Space') {
-                if (gameState === 'serve') {
+                if (gameState === 'win' || gameState === 'lose') {
                     e.preventDefault();
-                    gameState = 'playing';
-                } else if (gameState === 'levelTransition') {
-                    e.preventDefault();
-                    currentLevel = 2;
-                    attempts = 3; // ATTEMPTS RESET HERE FOR LEVEL 2
-                    initBlocks();
-                    paddle.x = (canvas.width - paddle.w) / 2;
-                    gameState = 'serve';
-                    resetBall();
-                    updateUI();
-                } else if (gameState === 'win' || gameState === 'gameOver') {
-                    e.preventDefault();
-                    resetToIdle();
+                    startGame();
                 }
             }
         });
 
-        window.addEventListener('keyup', (e) => {
-            if (e.key === 'Right' || e.key === 'ArrowRight' || e.key === 'd') {
-                rightPressed = false;
-            } else if (e.key === 'Left' || e.key === 'ArrowLeft' || e.key === 'a') {
-                leftPressed = false;
-            }
+        document.addEventListener('keyup', (e) => {
+            if (e.code === 'ArrowRight' || e.code === 'KeyD') rightPressed = false;
+            if (e.code === 'ArrowLeft' || e.code === 'KeyA') leftPressed = false;
+        });
+
+        // Mouse/Touch movement support
+        canvas.addEventListener('mousemove', (e) => {
+            if (gameState !== 'playing') return;
+            let rect = canvas.getBoundingClientRect();
+            let mouseX = e.clientX - rect.left;
+            paddle.x = mouseX - paddle.width / 2;
+            if (paddle.x < 0) paddle.x = 0;
+            if (paddle.x + paddle.width > canvas.width) paddle.x = canvas.width - paddle.width;
         });
 
         function collisionDetection() {
-            for (let c = 0; c < blockColumnCount; c++) {
-                for (let r = 0; r < blockRowCount; r++) {
-                    let b = blocks[c][r];
+            let activeBricksCount = 0;
+            for (let c = 0; c < brickColumnCount; c++) {
+                for (let r = 0; r < brickRowCount; r++) {
+                    let b = bricks[c][r];
                     if (b.status === 1) {
-                        if (ball.x > b.x && ball.x < b.x + blockWidth && ball.y > b.y && ball.y < b.y + blockHeight) {
+                        activeBricksCount++;
+                        let brickX = brickOffsetLeft + c * (brickWidth + brickPadding);
+                        let brickY = brickOffsetTop + r * (brickHeight + brickPadding);
+                        b.x = brickX;
+                        b.y = brickY;
+
+                        if (
+                            ball.x > brickX &&
+                            ball.x < brickX + brickWidth &&
+                            ball.y > brickY &&
+                            ball.y < brickY + brickHeight
+                        ) {
                             ball.dy = -ball.dy;
                             b.status = 0;
-                            score++;
-                            updateUI();
-                            
-                            // Check Level / Win condition
-                            if (score === totalBlocks) {
-                                if (currentLevel === 1) {
-                                    gameState = 'levelTransition';
-                                } else {
-                                    gameState = 'win';
-                                }
+                            activeBricksCount--;
+
+                            // Check Win Condition
+                            if (activeBricksCount === 0) {
+                                gameState = 'win';
+                                let currentMental = parseInt(localStorage.getItem('health_mental')) || 50;
+                                localStorage.setItem('health_mental', Math.min(100, currentMental + 25));
                                 updateUI();
                             }
                         }
@@ -252,175 +261,139 @@
             }
         }
 
-        // Logic Update
         function update() {
-            if (gameState === 'playing') {
-                // Move paddle
-                if (rightPressed && paddle.x < canvas.width - paddle.w) {
-                    paddle.x += paddle.speed;
-                } else if (leftPressed && paddle.x > 0) {
-                    paddle.x -= paddle.speed;
-                }
+            if (gameState !== 'playing') return;
 
-                // Move ball
-                ball.x += ball.dx;
-                ball.y += ball.dy;
-
-                // Wall collisions (Left, Right, Top)
-                if (ball.x + ball.dx > canvas.width - ball.r || ball.x + ball.dx < ball.r) {
-                    ball.dx = -ball.dx;
-                }
-                if (ball.y + ball.dy < ball.r) {
-                    ball.dy = -ball.dy;
-                } else if (ball.y + ball.dy > canvas.height - ball.r) {
-                    // Bottom collision (Lose Life)
-                    attempts--;
-                    if (attempts <= 0) {
-                        gameState = 'gameOver';
-                        updateUI();
-                    } else {
-                        gameState = 'serve';
-                        resetBall();
-                        updateUI();
-                    }
-                }
-
-                // Paddle collision
-                if (ball.y + ball.dy > paddle.y - ball.r && ball.y < paddle.y + paddle.h) {
-                    if (ball.x > paddle.x && ball.x < paddle.x + paddle.w) {
-                        ball.dy = -Math.abs(ball.dy); // Force upward
-                        // Add slight angle variance based on where it hit the paddle
-                        let hitPoint = ball.x - (paddle.x + paddle.w / 2);
-                        ball.dx = hitPoint * 0.15;
-                    }
-                }
-
-                collisionDetection();
-            } else if (gameState === 'serve') {
-                // Lock ball to paddle before serving
-                if (rightPressed && paddle.x < canvas.width - paddle.w) {
-                    paddle.x += paddle.speed;
-                } else if (leftPressed && paddle.x > 0) {
-                    paddle.x -= paddle.speed;
-                }
-                ball.x = paddle.x + paddle.w / 2;
-                ball.y = paddle.y - ball.r - 1;
+            // Paddle movement
+            if (rightPressed && paddle.x < canvas.width - paddle.width) {
+                paddle.x += paddle.speed;
+            } else if (leftPressed && paddle.x > 0) {
+                paddle.x -= paddle.speed;
             }
+
+            // Ball movement
+            ball.x += ball.dx;
+            ball.y += ball.dy;
+
+            // Wall collisions
+            if (ball.x + ball.radius > canvas.width || ball.x - ball.radius < 0) {
+                ball.dx = -ball.dx;
+            }
+            if (ball.y - ball.radius < 0) {
+                ball.dy = -ball.dy;
+            } 
+            // Paddle collision
+            else if (
+                ball.y + ball.radius > paddle.y &&
+                ball.x > paddle.x &&
+                ball.x < paddle.x + paddle.width
+            ) {
+                // Add angle deflection based on where it hits the paddle
+                let hitPoint = ball.x - (paddle.x + paddle.width / 2);
+                ball.dx = hitPoint * 0.15;
+                ball.dy = -Math.abs(ball.dy);
+            } 
+            // Bottom collision (Lose)
+            else if (ball.y + ball.radius > canvas.height) {
+                gameState = 'lose';
+                updateUI();
+            }
+
+            collisionDetection();
         }
 
-        // Rendering
         function draw() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Background Grid Lines
+            ctx.strokeStyle = '#222';
+            ctx.lineWidth = 1;
+            for(let i = 0; i < canvas.width; i += 40) { ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, canvas.height); ctx.stroke(); }
+            for(let i = 0; i < canvas.height; i += 40) { ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(canvas.width, i); ctx.stroke(); }
 
             if (gameState === 'idle') {
                 ctx.fillStyle = '#00f0ff';
                 ctx.font = '16px monospace';
                 ctx.textAlign = 'center';
-                ctx.fillText('PATTERN SHIFT PROTOCOL - STANDBY', canvas.width / 2, canvas.height / 2 - 10);
+                ctx.fillText('BLOCK BUSTER MODULE - STANDBY', canvas.width / 2, canvas.height / 2 - 20);
                 ctx.fillStyle = '#888';
                 ctx.font = '12px monospace';
-                ctx.fillText('Click the button above to begin reframing.', canvas.width / 2, canvas.height / 2 + 15);
-            } 
-            else if (gameState === 'levelTransition') {
-                ctx.fillStyle = '#141622';
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
-                ctx.fillStyle = '#00f0ff';
-                ctx.font = 'bold 22px monospace';
-                ctx.textAlign = 'center';
-                ctx.fillText('LEVEL 1 COMPLETE', canvas.width / 2, canvas.height / 2 - 20);
-                ctx.fillStyle = '#ffcc00';
-                ctx.font = '14px monospace';
-                ctx.fillText('Warning: Cognitive load increasing (Speed +40%).', canvas.width / 2, canvas.height / 2 + 10);
-                ctx.fillStyle = '#fff';
-                ctx.fillText('Attempts have been restored to 3. Press SPACEBAR to initiate Level 2.', canvas.width / 2, canvas.height / 2 + 40);
-            }
-            else if (gameState === 'win') {
-                ctx.fillStyle = '#141622';
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
-                ctx.fillStyle = '#39ff14';
-                ctx.font = 'bold 20px monospace';
-                ctx.textAlign = 'center';
-                ctx.fillText('REAPPRAISAL COMPLETE', canvas.width / 2, canvas.height / 2 - 20);
-                ctx.fillStyle = '#fff';
-                ctx.font = '14px monospace';
-                ctx.fillText('All distorted thought patterns have been successfully dismantled.', canvas.width / 2, canvas.height / 2 + 10);
-                ctx.fillStyle = '#00f0ff';
-                ctx.fillText('Press SPACEBAR to return to main menu.', canvas.width / 2, canvas.height / 2 + 35);
-            }
-            else if (gameState === 'gameOver') {
-                ctx.fillStyle = '#141622';
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
-                ctx.fillStyle = '#ff3366';
-                ctx.font = 'bold 22px monospace';
-                ctx.textAlign = 'center';
-                ctx.fillText('COGNITIVE OVERLOAD', canvas.width / 2, canvas.height / 2 - 20);
-                ctx.fillStyle = '#888';
-                ctx.font = '14px monospace';
-                ctx.fillText('Negative thought loops persisted. Recalibrate and try again.', canvas.width / 2, canvas.height / 2 + 10);
-                ctx.fillStyle = '#ffcc00';
-                ctx.fillText('Press SPACEBAR to return to main menu.', canvas.width / 2, canvas.height / 2 + 35);
-            }
-            else {
-                // Draw Blocks
-                for (let c = 0; c < blockColumnCount; c++) {
-                    for (let r = 0; r < blockRowCount; r++) {
-                        if (blocks[c][r].status === 1) {
-                            let blockX = (c * (blockWidth + blockPadding)) + blockOffsetLeft;
-                            let blockY = (r * (blockHeight + blockPadding)) + blockOffsetTop;
-                            blocks[c][r].x = blockX;
-                            blocks[c][r].y = blockY;
+                ctx.fillText('Click initialize to begin protocol.', canvas.width / 2, canvas.height / 2 + 20);
+            } else {
+                // Draw Bricks
+                for (let c = 0; c < brickColumnCount; c++) {
+                    for (let r = 0; r < brickRowCount; r++) {
+                        if (bricks[c][r].status === 1) {
+                            let brickX = brickOffsetLeft + c * (brickWidth + brickPadding);
+                            let brickY = brickOffsetTop + r * (brickHeight + brickPadding);
                             
-                            // Block styling (Red/Pink to signify bad thoughts)
-                            ctx.fillStyle = '#551111';
+                            ctx.fillStyle = '#232635';
                             ctx.strokeStyle = '#ff3366';
-                            ctx.lineWidth = 2;
-                            ctx.fillRect(blockX, blockY, blockWidth, blockHeight);
-                            ctx.strokeRect(blockX, blockY, blockWidth, blockHeight);
+                            ctx.lineWidth = 1.5;
+                            ctx.fillRect(brickX, brickY, brickWidth, brickHeight);
+                            ctx.strokeRect(brickX, brickY, brickWidth, brickHeight);
 
-                            // Block Text
-                            ctx.fillStyle = '#ffcc00';
-                            ctx.font = '10px monospace';
+                            ctx.fillStyle = '#ff3366';
+                            ctx.font = 'bold 9px monospace';
                             ctx.textAlign = 'center';
                             ctx.textBaseline = 'middle';
-                            ctx.fillText(blocks[c][r].label, blockX + blockWidth / 2, blockY + blockHeight / 2);
+                            ctx.fillText(bricks[c][r].text, brickX + brickWidth / 2, brickY + brickHeight / 2);
                         }
                     }
                 }
 
-                // Draw Paddle (Cyan to signify logic/reappraisal)
+                // Draw Paddle
                 ctx.fillStyle = '#00f0ff';
-                ctx.shadowBlur = 10;
                 ctx.shadowColor = '#00f0ff';
-                ctx.fillRect(paddle.x, paddle.y, paddle.w, paddle.h);
-                ctx.shadowBlur = 0; // Reset
+                ctx.shadowBlur = 10;
+                ctx.fillRect(paddle.x, paddle.y, paddle.width, paddle.height);
 
-                // Draw Ball (Yellow)
+                // Draw Ball
                 ctx.beginPath();
-                ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI * 2);
-                ctx.fillStyle = '#ffcc00';
+                ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
+                ctx.fillStyle = '#39ff14';
                 ctx.fill();
                 ctx.closePath();
+                ctx.shadowBlur = 0; // Reset shadow
+            }
 
-                // Draw Serve Prompt
-                if (gameState === 'serve') {
-                    ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
-                    ctx.fillRect(0, canvas.height / 2 + 20, canvas.width, 40);
-                    ctx.fillStyle = '#fff';
-                    ctx.font = '14px monospace';
-                    ctx.textAlign = 'center';
-                    ctx.fillText('Press SPACEBAR to Launch', canvas.width / 2, canvas.height / 2 + 45);
-                }
+            // Win / Lose Overlays
+            if (gameState === 'win') {
+                ctx.fillStyle = 'rgba(20, 22, 34, 0.85)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                ctx.fillStyle = '#39ff14';
+                ctx.font = 'bold 22px monospace';
+                ctx.textAlign = 'center';
+                ctx.fillText('STRESS BLOCKS DESTROYED', canvas.width / 2, canvas.height / 2 - 20);
+                ctx.fillStyle = '#fff';
+                ctx.font = '13px monospace';
+                ctx.fillText('Mental health upgraded successfully.', canvas.width / 2, canvas.height / 2 + 10);
+                ctx.fillStyle = '#00f0ff';
+                ctx.fillText('Press SPACEBAR to play again.', canvas.width / 2, canvas.height / 2 + 40);
+            } else if (gameState === 'lose') {
+                ctx.fillStyle = 'rgba(20, 22, 34, 0.85)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                ctx.fillStyle = '#ff3366';
+                ctx.font = 'bold 22px monospace';
+                ctx.textAlign = 'center';
+                ctx.fillText('CORE OVERWHELMED', canvas.width / 2, canvas.height / 2 - 20);
+                ctx.fillStyle = '#fff';
+                ctx.font = '13px monospace';
+                ctx.fillText('Negative stress blocks remain active.', canvas.width / 2, canvas.height / 2 + 10);
+                ctx.fillStyle = '#ffcc00';
+                ctx.fillText('Press SPACEBAR to retry protocol.', canvas.width / 2, canvas.height / 2 + 40);
             }
         }
 
-        // Main Loop
         function loop() {
             update();
             draw();
             requestAnimationFrame(loop);
         }
-        
-        loop();
+
+        requestAnimationFrame(loop);
     </script>
 </body>
 </html>
